@@ -1,0 +1,8 @@
+[package]
+name = "not_optimized_fib"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "not_optimized_fib"
+path = "main.rs"
