@@ -1,8 +1,8 @@
 [package]
-name = "array"
+name = "transpose"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "array"
+name = "transpose"
 path = "main.rs"

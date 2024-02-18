@@ -1,8 +1,8 @@
 [package]
-name = "loop"
+name = "collatz_length"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "loop"
+name = "collatz_length"
 path = "main.rs"
