@@ -1,5 +1,5 @@
 [package]
-name = "not_optimized_fib"
+name = "condition"
 version = "0.1.0"
 edition = "2021"
 

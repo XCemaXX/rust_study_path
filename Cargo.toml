@@ -1,0 +1,11 @@
+[workspace]
+
+members = [
+    "00_hello_world/hello_cargo",
+    "01_basics/05_type_unpacking",
+    "01_basics/00_condition",
+    "01_basics/03_links",
+    "01_basics/01_loop",
+    "01_basics/02_array",
+    "01_basics/04_user_types",
+]
