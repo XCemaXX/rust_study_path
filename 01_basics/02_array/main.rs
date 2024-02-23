@@ -25,4 +25,8 @@ fn main() {
             [103, 203, 303],
         ]
     );
+    println!("Matrix by rows");
+    for row in matrix {
+        println!("{:#?}", row);
+    }
 }

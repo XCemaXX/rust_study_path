@@ -1,5 +1,5 @@
 [workspace]
-
+resolver = "2"
 members = [
     "00_hello_world/hello_cargo",
     "01_basics/05_type_unpacking",

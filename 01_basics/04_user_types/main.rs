@@ -18,6 +18,15 @@ enum Button {
     LiftButton(Floor)
 }
 
+#[derive(Debug)]
+struct AgeWeight(i32, i32);
+
+#[derive(Debug)]
+struct Person {
+    name: String,
+    age_weight: AgeWeight,
+}
+
 type Floor = i32;
 
 fn car_arrived(floor: i32) -> Event {
@@ -41,8 +50,9 @@ fn car_floor_button_pressed(floor: i32) -> Event {
 }
 
 fn main() {
+    let man = Person{ name: "Kate".to_string(), age_weight: AgeWeight(10, 30) };
     println!(
-        "A man on the first floor pressed the up button: {:?}",
+        "{:?} on the first floor pressed the up button: {:?}", man,
         lobby_call_button_pressed(0, Direction::Up)
     );
     println!("The elevator arrived on the first floor: {:?}", car_arrived(0));
