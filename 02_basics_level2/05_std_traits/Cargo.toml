@@ -1,0 +1,32 @@
+[package]
+name = "std_traits"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "comparison"
+path = "comparison.rs"
+
+[[bin]]
+name = "operators"
+path = "operators.rs"
+
+[[bin]]
+name = "casts"
+path = "casts.rs"
+
+[[bin]]
+name = "read_write"
+path = "read_write.rs"
+
+[[bin]]
+name = "default"
+path = "default.rs"
+
+[[bin]]
+name = "lamdas"
+path = "lamdas.rs"
+
+[[bin]]
+name = "rot13"
+path = "rot13.rs"

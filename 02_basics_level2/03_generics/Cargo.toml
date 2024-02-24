@@ -1,0 +1,12 @@
+[package]
+name = "generics"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "generics"
+path = "main.rs"
+
+[[bin]]
+name = "min"
+path = "min.rs"

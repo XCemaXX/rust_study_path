@@ -11,7 +11,15 @@ name = "condition"
 version = "0.1.0"
 
 [[package]]
+name = "generics"
+version = "0.1.0"
+
+[[package]]
 name = "hello_cargo"
+version = "0.1.0"
+
+[[package]]
+name = "if_let"
 version = "0.1.0"
 
 [[package]]
@@ -20,6 +28,18 @@ version = "0.1.0"
 
 [[package]]
 name = "loop"
+version = "0.1.0"
+
+[[package]]
+name = "methods"
+version = "0.1.0"
+
+[[package]]
+name = "std_traits"
+version = "0.1.0"
+
+[[package]]
+name = "std_types"
 version = "0.1.0"
 
 [[package]]

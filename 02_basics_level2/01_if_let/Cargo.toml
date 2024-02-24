@@ -1,0 +1,8 @@
+[package]
+name = "if_let"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "eval_arithmetic_exprs"
+path = "main.rs"

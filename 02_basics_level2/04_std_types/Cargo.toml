@@ -1,0 +1,12 @@
+[package]
+name = "std_types"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "types"
+path = "main.rs"
+
+[[bin]]
+name = "counter"
+path = "counter.rs"
