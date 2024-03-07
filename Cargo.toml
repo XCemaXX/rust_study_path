@@ -13,4 +13,5 @@ members = [
     "02_basics_level2/03_generics",
     "02_basics_level2/04_std_types",
     "02_basics_level2/05_std_traits",
+    "05_algorithms/01_probabilistic",
 ]
