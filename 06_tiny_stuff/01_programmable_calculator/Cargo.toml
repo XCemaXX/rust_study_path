@@ -1,0 +1,8 @@
+[package]
+name = "programmable_calculator"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "programmable_calculator"
+path = "main.rs"
