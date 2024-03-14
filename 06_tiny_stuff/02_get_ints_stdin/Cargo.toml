@@ -1,0 +1,8 @@
+[package]
+name = "get_ints_stdin"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "get_ints_stdin"
+path = "main.rs"

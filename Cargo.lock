@@ -69,6 +69,10 @@ name = "generics"
 version = "0.1.0"
 
 [[package]]
+name = "get_ints_stdin"
+version = "0.1.0"
+
+[[package]]
 name = "hello_cargo"
 version = "0.1.0"
 
@@ -217,6 +221,10 @@ checksum = "cbf7e9e623549b0e21f6e97cf8ecf247c1a8fd2e8a992ae265314300b2455d5c"
 dependencies = [
  "rand_core 0.3.1",
 ]
+
+[[package]]
+name = "range_minimum_query"
+version = "0.1.0"
 
 [[package]]
 name = "rdrand"

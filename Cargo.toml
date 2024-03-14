@@ -14,5 +14,7 @@ members = [
     "02_basics_level2/04_std_types",
     "02_basics_level2/05_std_traits",
     "05_algorithms/01_probabilistic",
+    "05_algorithms/02_range_minimum_query",
     "06_tiny_stuff/01_programmable_calculator",
+    "06_tiny_stuff/02_get_ints_stdin",
 ]
