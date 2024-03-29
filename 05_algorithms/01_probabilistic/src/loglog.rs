@@ -1,6 +1,7 @@
 
 // HyperLogLog
 // https://habr.com/ru/articles/119852/
+#![allow(dead_code)]
 
 use std::fs::File;
 use std::io::{Read, Result};
@@ -73,7 +74,7 @@ impl HyperLogLog {
     fn get_data_from_file(file_name: &str) -> Result<String> {
         let mut file = File::open(file_name)?;
         let mut buf = String::new();
-        let len = file.read_to_string(&mut buf)?;
+        let _ = file.read_to_string(&mut buf)?;
         Ok(buf)
     }
 

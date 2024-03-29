@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 fn get_int<T>() -> T 
 where T: std::str::FromStr,
     T::Err: std::fmt::Debug

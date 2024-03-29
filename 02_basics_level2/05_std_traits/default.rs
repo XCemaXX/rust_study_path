@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 #[derive(Debug, Default)]
 struct Foo {
     x: u32,

@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 struct Point<T> {
     x: T, 
     y: T,
@@ -18,7 +19,6 @@ fn pick<T>(b: bool, even: T, odd: T) -> T {
 }
 
 // #############
-
 #[derive(Debug, Clone)]
 struct PointClonable<T> {
     x: T, 

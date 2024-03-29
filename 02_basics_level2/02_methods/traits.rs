@@ -1,5 +1,5 @@
 // cargo run -p methods --bin traits
-
+#![allow(dead_code)]
 struct Duck {
     color: String,
 }

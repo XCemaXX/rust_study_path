@@ -1,6 +1,6 @@
 // Jaccard coef = interseption of set / union of sets
 // https://habr.com/ru/articles/115147/
-
+#![allow(dead_code)]
 pub struct MinHash {
     functions: Vec<Box<dyn Fn(&str) -> u32>>,
 }
