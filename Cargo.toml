@@ -13,6 +13,8 @@ members = [
     "02_basics_level2/03_generics",
     "02_basics_level2/04_std_types",
     "02_basics_level2/05_std_traits",
+    "03_memory_level3/01_clone_drop",
+    "03_memory_level3/02_box",
     "05_algorithms/01_probabilistic",
     "05_algorithms/02_range_minimum_query",
     "06_tiny_stuff/01_programmable_calculator",

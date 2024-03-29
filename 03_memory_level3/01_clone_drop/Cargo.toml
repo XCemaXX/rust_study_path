@@ -1,0 +1,8 @@
+[package]
+name = "clone_drop"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "clone_drop"
+path = "main.rs"

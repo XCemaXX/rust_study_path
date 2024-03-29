@@ -12,9 +12,9 @@ where T: std::str::FromStr,
     T::Err: std::fmt::Debug {
     let mut buf = String::new();
     std::io::stdin().read_line(&mut buf).expect("failed to read input.");
-    let mut res: Vec<T> = Vec::new();
-    let devided = buf.trim().split_whitespace();
-    for (i, s) in devided.enumerate() {
+    let mut res: Vec<T> = Vec::with_capacity(n);
+    let divided = buf.trim().split_whitespace();
+    for (i, s) in divided.enumerate() {
         let num: T = s.trim().parse::<T>().expect("invalid input");
         res.push(num);
         if i == n {
