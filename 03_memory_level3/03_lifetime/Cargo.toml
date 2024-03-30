@@ -1,0 +1,19 @@
+[package]
+name = "lifetime"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "health_report"
+path = "health_report.rs"
+
+[[bin]]
+name = 'lifetime'
+path = "main.rs"
+
+[[bin]]
+name = 'protobuf'
+path = "protobuf.rs"
+
+[dependencies]
+thiserror = "1.0"
