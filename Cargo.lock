@@ -89,6 +89,10 @@ name = "if_let"
 version = "0.1.0"
 
 [[package]]
+name = "iterators"
+version = "0.1.0"
+
+[[package]]
 name = "libc"
 version = "0.2.153"
 source = "registry+https://github.com/rust-lang/crates.io-index"

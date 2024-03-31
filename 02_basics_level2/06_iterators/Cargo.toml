@@ -1,0 +1,12 @@
+[package]
+name = "iterators"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "iterators"
+path = "iterators.rs"
+
+[[bin]]
+name = "todos"
+path = "todos.rs"

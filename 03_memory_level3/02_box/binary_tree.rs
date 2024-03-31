@@ -29,6 +29,10 @@ impl<T: Ord> BinaryTree<T> {
     fn len(&self) -> usize {
         self.root.len()
     }
+
+    fn iter(&self) -> BinaryTreeIter<T> {
+        self.root.iter()
+    }
 }
 
 impl<T: Ord> Subtree<T> {
@@ -65,6 +69,16 @@ impl<T: Ord> Subtree<T> {
             Some(b) => 1 + b.left.len() + b.right.len(), 
         }
     }
+
+    fn iter(&self) -> BinaryTreeIter<T> {
+        match &self.0 {
+            None => BinaryTreeIter {parents: vec![]},
+            Some(b) => {
+                BinaryTreeIter {parents: vec![b]}
+            }
+        }
+        
+    }
 }
 
 impl<T: Ord> Node<T> {
@@ -73,12 +87,50 @@ impl<T: Ord> Node<T> {
     }
 }
 
+struct BinaryTreeIter<'a, T: Ord> {
+    parents: Vec<&'a Node<T>>
+}
+
+impl <'a, T: Ord>Iterator for BinaryTreeIter<'a, T> {
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.parents.len() == 0 {
+            return None
+        };
+        let root = &self.parents.pop();
+        match root {
+            None => None,
+            Some(b) => {
+                let res = Some(&b.value);
+                if let Some(next) = &b.right.0 {
+                    self.parents.push(&next);
+                }
+                if let Some(next) = &b.left.0 {
+                    self.parents.push(&next);
+                }
+                res
+            },
+        }   
+    }
+}
+
+
 fn main() {
     let mut tree = BinaryTree::new();
     tree.insert("foo");
     assert_eq!(tree.len(), 1);
     tree.insert("bar");
     assert!(tree.has(&"foo"));
+
+    let mut tree2 = BinaryTree::new();
+    tree2.insert(5);
+    tree2.insert(10);
+    tree2.insert(1);
+    tree2.insert(3);
+    for i in tree2.iter() {
+        println!("{}",i)
+    }
 }
 
 #[cfg(test)]

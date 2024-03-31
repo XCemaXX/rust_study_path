@@ -13,6 +13,7 @@ members = [
     "02_basics_level2/03_generics",
     "02_basics_level2/04_std_types",
     "02_basics_level2/05_std_traits",
+    "02_basics_level2/06_iterators",
     "03_memory_level3/01_clone_drop",
     "03_memory_level3/02_box",
     "03_memory_level3/03_lifetime",
