@@ -1,0 +1,16 @@
+[package]
+name = "errors"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "errors"
+path = "main.rs"
+
+[[bin]]
+name = "simple_parser"
+path = "simple_parser.rs"
+
+[dependencies]
+thiserror = "1.0"
+anyhow = "1.0"
