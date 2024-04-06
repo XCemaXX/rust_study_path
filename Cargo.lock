@@ -170,6 +170,10 @@ name = "methods"
 version = "0.1.0"
 
 [[package]]
+name = "parallel"
+version = "0.1.0"
+
+[[package]]
 name = "probabilistic"
 version = "0.1.0"
 dependencies = [

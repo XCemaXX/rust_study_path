@@ -1,0 +1,20 @@
+[package]
+name = "parallel"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "threads"
+path = "threads.rs"
+
+[[bin]]
+name = "channels"
+path = "channels.rs"
+
+[[bin]]
+name = "shared_data"
+path = "shared_data.rs"
+
+[[bin]]
+name = "dining_philosophers"
+path = "dining_philosophers.rs"
