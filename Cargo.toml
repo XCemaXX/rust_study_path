@@ -25,4 +25,5 @@ members = [
     "05_algorithms/02_range_minimum_query",
     "06_tiny_stuff/01_programmable_calculator",
     "06_tiny_stuff/02_get_ints_stdin",
+    "06_tiny_stuff/03_check_links",
 ]

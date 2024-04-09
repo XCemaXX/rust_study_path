@@ -1,0 +1,18 @@
+[package]
+name = "check_links"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "check_links"
+path = "check_links.rs"
+
+[dependencies]
+reqwest = { version = "0.12", features = ["blocking", "rustls-tls"] }
+scraper = "0.19"
+thiserror = "1.0"
+threadpool = "1.8.1"
+
+#cargo add reqwest --features blocking,rustls-tls --package check_links
+#cargo add scraper --package check_links
+#cargo add thiserror --package check_links

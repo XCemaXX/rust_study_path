@@ -13,3 +13,5 @@ path = "read_dir.rs"
 
 [dependencies]
 tempfile = "3.10"
+
+#cargo add tempfile --package unsafe_rust

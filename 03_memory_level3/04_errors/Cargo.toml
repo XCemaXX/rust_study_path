@@ -14,3 +14,6 @@ path = "simple_parser.rs"
 [dependencies]
 thiserror = "1.0"
 anyhow = "1.0"
+
+#cargo add thiserror --package errors
+#cargo add anyhow --package errors

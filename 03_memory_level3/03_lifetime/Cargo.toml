@@ -17,3 +17,5 @@ path = "protobuf.rs"
 
 [dependencies]
 thiserror = "1.0"
+
+#cargo add thiserror --package lifetime
