@@ -225,6 +225,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "dining_philosophers"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "futures",
+ "rand",
+ "tokio",
+]
+
+[[package]]
 name = "dtoa"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"

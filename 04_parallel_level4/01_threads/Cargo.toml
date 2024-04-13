@@ -14,7 +14,3 @@ path = "channels.rs"
 [[bin]]
 name = "shared_data"
 path = "shared_data.rs"
-
-[[bin]]
-name = "dining_philosophers"
-path = "dining_philosophers.rs"

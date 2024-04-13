@@ -1,23 +1,15 @@
 [package]
-name = "async2"
+name = "dining_philosophers"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "blocker"
-path = "blocker.rs"
+name = "dining_philosophers"
+path = "dining_philosophers.rs"
 
 [[bin]]
-name = "pin"
-path = "pin.rs"
-
-[[bin]]
-name = "async_trait"
-path = "async_trait.rs"
-
-[[bin]]
-name = "cancellation"
-path = "cancellation.rs"
+name = "dining_philosophers_async"
+path = "dining_philosophers_async.rs"
 
 [dependencies]
 async-trait = "0.1.80"
