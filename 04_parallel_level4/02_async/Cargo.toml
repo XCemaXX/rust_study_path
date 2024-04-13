@@ -1,0 +1,37 @@
+[package]
+name = "async"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "simple_async"
+path = "simple_async.rs"
+
+[[bin]]
+name = "tokio"
+path = "tokio.rs"
+
+[[bin]]
+name = "tcp_listener"
+path = "tcp_listener.rs"
+
+[[bin]]
+name = "tokio_channel"
+path = "tokio_channel.rs"
+
+[[bin]]
+name = "join_all"
+path = "join_all.rs"
+
+[[bin]]
+name = "select"
+path = "select.rs"
+
+[dependencies]
+anyhow = "1.0.82"
+futures = "0.3"
+reqwest = { version = "0.12.3", features = ["blocking", "rustls-tls"] }
+tokio = { version = "1.37.0", features = ["macros", "rt", "rt-multi-thread"] }
+
+#cargo add futures --package async
+#cargo add tokio --features macros,rt,rt-multi-thread --package async

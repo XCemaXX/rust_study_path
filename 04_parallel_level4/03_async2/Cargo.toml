@@ -1,0 +1,26 @@
+[package]
+name = "async2"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "blocker"
+path = "blocker.rs"
+
+[[bin]]
+name = "pin"
+path = "pin.rs"
+
+[[bin]]
+name = "async_trait"
+path = "async_trait.rs"
+
+[[bin]]
+name = "cancellation"
+path = "cancellation.rs"
+
+[dependencies]
+async-trait = "0.1.80"
+futures = "0.3"
+rand = "0.8.5"
+tokio = { version = "1.37.0", features = ["macros", "rt", "rt-multi-thread"] }
