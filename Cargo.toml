@@ -24,6 +24,7 @@ members = [
     "04_parallel_level4/02_async",
     "04_parallel_level4/03_async2",
     "04_parallel_level4/04_dining_philosophers",
+    "04_parallel_level4/05_chat",
     "05_algorithms/01_probabilistic",
     "05_algorithms/02_range_minimum_query",
     "06_tiny_stuff/01_programmable_calculator",
