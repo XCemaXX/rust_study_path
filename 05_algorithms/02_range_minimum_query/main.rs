@@ -10,7 +10,7 @@ struct Segments {
 }
 
 impl Segments {
-    fn gen(v: &Vec<usize>, k: usize, cmp_func: impl Fn(usize, usize) -> usize + 'static) -> Self {
+    fn gen(v: &[usize], k: usize, cmp_func: impl Fn(usize, usize) -> usize + 'static) -> Self {
         let n = v.len();
         let mut b = vec![0_usize; n];
         let mut c = vec![0_usize; n];
@@ -37,11 +37,11 @@ impl Segments {
         Self { k: k + 1, b, c, cmp_func: Box::new(cmp_func) }
     }
 
-    fn new_maxs(v: &Vec<usize>, k: usize) -> Self {
+    fn new_maxs(v: &[usize], k: usize) -> Self {
         Self::gen(v, k, std::cmp::max::<usize>)
     }
 
-    fn new_mins(v: &Vec<usize>, k: usize) -> Self {
+    fn new_mins(v: &[usize], k: usize) -> Self {
         Self::gen(v, k, std::cmp::min::<usize>)
     }
 

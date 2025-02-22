@@ -28,6 +28,16 @@ impl Pet for Duck {
     }
 }
 
+trait SuperPet {
+    fn talk (&self) -> String;
+}
+
+impl SuperPet for Parrot {
+    fn talk (&self) -> String {
+        format!("Hello! Hello! Hello!")
+    }
+}
+
 fn main() {
     let parrot = Parrot{name: String::from("Pavel"), age: 2};
     let duck = Duck{color: String::from("Grey")};
@@ -46,4 +56,7 @@ fn main() {
     println!("Link size. Parrot: {}, Duck: {}", std::mem::size_of::<&Parrot>(), std::mem::size_of::<&Duck>());
     println!("Trait fat pointer size: {}", std::mem::size_of::<&dyn Pet>());
     println!("Box trait size: {}", std::mem::size_of::<Box<dyn Pet>>());
+
+    println!("Supper parrot: {}", SuperPet::talk(&parrot));
+    println!("Parrot: {}", Pet::talk(&parrot));
 }

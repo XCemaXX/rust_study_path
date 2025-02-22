@@ -97,7 +97,7 @@ pub mod calculator {
     }
 
     type ProgFunReturn = Result<Vec<Value>, String>;
-    type ProgFun = Box<dyn Fn(&Vec<Value>, bool) -> ProgFunReturn>;
+    type ProgFun = Box<dyn Fn(&[Value], bool) -> ProgFunReturn>;
 
     pub fn create_program(text: &str) -> Result<ProgFun, String> {
         let mut instructions: Vec<Instruction> = Vec::new();
@@ -109,7 +109,7 @@ pub mod calculator {
             instructions.push(i); 
         }
 
-        let res = Box::new(move |input: &Vec<Value>, on_detailed: bool| -> ProgFunReturn {
+        let res = Box::new(move |input: &[Value], on_detailed: bool| -> ProgFunReturn {
             let mut input_iter = input.iter();
             let mut state: Registers = [0; 4];
             let mut output: Vec<Value> = Vec::new();
