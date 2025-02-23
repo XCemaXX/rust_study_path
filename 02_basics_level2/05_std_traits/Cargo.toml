@@ -30,3 +30,7 @@ path = "lamdas.rs"
 [[bin]]
 name = "rot13"
 path = "rot13.rs"
+
+[[bin]]
+name = "func_pointers_array"
+path = "func_pointers_array.rs"
