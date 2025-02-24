@@ -10,3 +10,7 @@ path = "iterators.rs"
 [[bin]]
 name = "todos"
 path = "todos.rs"
+
+[[bin]]
+name = "iterator_trait"
+path = "iterator_trait.rs"
