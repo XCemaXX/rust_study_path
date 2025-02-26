@@ -34,3 +34,7 @@ path = "rot13.rs"
 [[bin]]
 name = "func_pointers_array"
 path = "func_pointers_array.rs"
+
+[[bin]]
+name = "member_trait_same_name"
+path = "member_trait_same_name.rs"

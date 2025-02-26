@@ -33,14 +33,18 @@ fn duplicate<T>(a: T) -> (T, T)
 }
 
 // #############
-// fn add_42_millions<T: Into<i32>>(x: T) -> i32 { // the same
+// fn add_42_millions<T: Into<i32>>(x: T) -> i32 { // ~ the same
 fn add_42_millions(x: impl Into<i32>) -> i32 { // trait Into<i32> ~ cast in C++
     x.into() + 42_000_000
 }
 
+// Cannot write 
+// fn pair_of<T: std::fmt::Debug>(x: u32) -> T {
+// need auto typing, not bound
 fn pair_of(x: u32) -> impl std::fmt::Debug {
     (x + 1, x - 1)
 }
+
 fn main() {
     println!("first: {:?}", pick(true, 222, 333));
     println!("second: {:?}", pick(false, ("dog", 1), ("cat", 2)));

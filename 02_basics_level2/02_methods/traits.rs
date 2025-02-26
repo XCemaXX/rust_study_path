@@ -43,11 +43,17 @@ fn main() {
     let duck = Duck{color: String::from("Grey")};
     parrot.greet();
     duck.greet();
+    let parrot: &dyn Pet = &parrot;
+    let duck: &dyn Pet = &duck;
+    let pets = vec![parrot, duck]; // only links, doesn't own
+    for pet in pets {
+        pet.greet();
+    }
     // ######
     let pets: Vec<Box<dyn Pet>> = vec! [
         Box::new(Parrot{name: String::from("Pavel"), age: 2}),
         Box::new(Duck{color: String::from("Grey")}),
-    ];
+    ]; // owns
     for pet in pets {
         pet.greet();
     }
@@ -57,6 +63,8 @@ fn main() {
     println!("Trait fat pointer size: {}", std::mem::size_of::<&dyn Pet>());
     println!("Box trait size: {}", std::mem::size_of::<Box<dyn Pet>>());
 
-    println!("Supper parrot: {}", SuperPet::talk(&parrot));
-    println!("Parrot: {}", Pet::talk(&parrot));
+    // different traits with same name. Need to specify
+    let parrot = Parrot{name: String::from("Igor"), age: 2};
+    println!("Supper parrot: {}", SuperPet::talk(&parrot)); 
+    println!("Parrot: {}", Pet::talk(&parrot));    
 }
