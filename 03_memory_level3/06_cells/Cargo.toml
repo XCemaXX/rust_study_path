@@ -1,0 +1,8 @@
+[package]
+name = "cells"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "cells"
+path = "main.rs"
