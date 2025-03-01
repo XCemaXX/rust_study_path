@@ -1,0 +1,16 @@
+[package]
+name = "tree"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "tree"
+path = "tree.rs"
+
+[[bin]]
+name = "rc"
+path = "rc.rs"
+
+[[bin]]
+name = "cow"
+path = "cow.rs"
