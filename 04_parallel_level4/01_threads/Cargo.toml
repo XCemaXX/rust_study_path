@@ -14,3 +14,7 @@ path = "channels.rs"
 [[bin]]
 name = "shared_data"
 path = "shared_data.rs"
+
+[[bin]]
+name = "atomics"
+path = "atomics.rs"

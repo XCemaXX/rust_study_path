@@ -35,7 +35,7 @@ impl Philosopher {
     }
 }
 
-static PHILOSOPHERS: &[&str] =
+const PHILOSOPHERS: &[&str] =
     &["Socrates", "Hypatia", "Plato", "Aristotle", "Pythagoras"];
 
 fn main() {
