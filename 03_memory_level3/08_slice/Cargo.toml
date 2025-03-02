@@ -1,0 +1,8 @@
+[package]
+name = "slice"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "split_slice"
+path = "split_slice.rs"

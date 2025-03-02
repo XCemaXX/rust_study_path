@@ -4,10 +4,14 @@ use std::cell::RefCell;
 
 fn main() {
     // RefCell without copy
-    let mut map: HashMap<String, RefCell<String>> = HashMap::new();
-    map.insert("a".to_owned(), RefCell::new("1".to_string()));
-    map.insert("b".to_owned(), RefCell::new("2".to_string()));
-    map.insert("c".to_owned(), RefCell::new("3".to_string()));
+    let mut map: HashMap<String, String> = HashMap::new(); // or make straight away: HashMap<String, RefCell<String>>
+    map.insert("a".to_owned(), "1".to_owned());
+    map.insert("b".to_owned(), "2".to_owned());
+    map.insert("c".to_owned(), "3".to_owned());
+    let mut map: HashMap<String, RefCell<String>> = map.into_iter()
+        .map(|(key, value)| (key, RefCell::new(value)))
+        .collect();
+    map.insert("e".to_owned(), "4".to_string().into());
 
     for (key, value) in map.iter() {
         value.borrow_mut().push_str("!");

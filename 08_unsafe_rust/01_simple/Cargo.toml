@@ -1,0 +1,8 @@
+[package]
+name = "unsafe_rust_simple"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "unsafe1"
+path = "unsafe1.rs"

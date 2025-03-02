@@ -1,11 +1,7 @@
 [package]
-name = "unsafe_rust"
+name = "ffi_filesystem"
 version = "0.1.0"
 edition = "2021"
-
-[[bin]]
-name = "unsafe_rust"
-path = "main.rs"
 
 [[bin]]
 name = "read_dir"

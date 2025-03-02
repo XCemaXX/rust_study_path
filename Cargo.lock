@@ -319,6 +319,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "658bd65b1cf4c852a3cc96f18a8ce7b5640f6b703f905c7d74532294c2a63984"
 
 [[package]]
+name = "ffi_filesystem"
+version = "0.1.0"
+dependencies = [
+ "tempfile",
+]
+
+[[package]]
 name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1432,6 +1439,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "slice"
+version = "0.1.0"
+
+[[package]]
 name = "smallvec"
 version = "1.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1799,11 +1810,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e51733f11c9c4f72aa0c160008246859e340b00807569a0da0e7a1079b27ba85"
 
 [[package]]
-name = "unsafe_rust"
+name = "unsafe_rust_simple"
 version = "0.1.0"
-dependencies = [
- "tempfile",
-]
 
 [[package]]
 name = "untrusted"
