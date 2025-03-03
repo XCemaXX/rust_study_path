@@ -1,0 +1,8 @@
+[package]
+name = "macro_simple"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "macro_simple"
+path = "macro_simple.rs"

@@ -1,0 +1,17 @@
+[package]
+name = "macro_fn"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "macro_fn"
+path = "main.rs"
+
+[lib]
+name = "squared_macro"
+path = "squared_macro.rs"
+proc-macro = true
+
+[dependencies]
+syn = { version = "2", features = ["full"] }
+quote = "1"

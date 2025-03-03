@@ -35,4 +35,6 @@ members = [
     "06_tiny_stuff/04_change_map_values",
     "08_unsafe_rust/01_simple",
     "08_unsafe_rust/02_ffi_filesystem",
+    "09_macro/01_simple",
+    "09_macro/02_proc_macro",
 ]
