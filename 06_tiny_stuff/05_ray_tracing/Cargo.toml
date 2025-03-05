@@ -1,0 +1,10 @@
+[package]
+name = "ray_tracing"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "ray_tracing"
+
+[dependencies]
+rand = { version = "0.9.0", features = [ "small_rng" ] }
