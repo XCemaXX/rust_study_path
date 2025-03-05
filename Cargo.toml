@@ -33,6 +33,7 @@ members = [
     "06_tiny_stuff/02_get_ints_stdin",
     "06_tiny_stuff/03_check_links",
     "06_tiny_stuff/04_change_map_values",
+    "06_tiny_stuff/05_ray_tracing",
     "08_unsafe_rust/01_simple",
     "08_unsafe_rust/02_ffi_filesystem",
     "09_macro/01_simple",
