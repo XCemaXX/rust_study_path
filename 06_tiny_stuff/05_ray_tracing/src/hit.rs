@@ -37,7 +37,7 @@ impl HitRecord<'_> {
     }
 }
 
-pub trait Hit {
+pub trait Hit: Send + Sync {
     fn hit(&self, r: &Ray, ray_t: Range<f32>) -> Option<HitRecord>;
 }
 

@@ -1,17 +1,17 @@
 use super::*;
 use rand::{SeedableRng, rngs::SmallRng};
 
+thread_local! {
+    static DIELECTRIC_RNG: RefCell<SmallRng> = RefCell::new(SmallRng::from_rng(&mut rand::rng()));
+}
+
 pub struct Dielectric {
     ref_idx: f32,
-    rng: RefCell<SmallRng>,
 }
 
 impl Dielectric {
     pub fn new(ref_idx: f32) -> Self {
-        Self {
-            ref_idx,
-            rng: RefCell::new(SmallRng::from_rng(&mut rand::rng())),
-        }
+        Self { ref_idx }
     }
 }
 
@@ -41,9 +41,8 @@ impl Material for Dielectric {
         let cos_theta = f32::min((-unit_direction).dot(rec.normal), 1.0);
         let sin_theta = f32::sqrt(1.0 - cos_theta * cos_theta);
         let cannot_refract = ri * sin_theta > 1.0;
-        let direction = if cannot_refract
-            || reflectance(cos_theta, ri) > self.rng.borrow_mut().random::<f32>()
-        {
+        let random = DIELECTRIC_RNG.with(|rng| rng.borrow_mut().random::<f32>());
+        let direction = if cannot_refract || reflectance(cos_theta, ri) > random {
             reflect(unit_direction, rec.normal)
         } else {
             refract(unit_direction, rec.normal, ri)

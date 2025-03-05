@@ -1,12 +1,12 @@
-use rand::{Rng, SeedableRng, rngs::SmallRng};
-
 use crate::{
     Coords, Ray,
     color::Color,
     hit::{Hit, HitableList},
 };
+use rand::{Rng, SeedableRng, rngs::SmallRng};
+use std::{sync::Mutex, thread};
 
-use std::{cell::RefCell, f32::consts::PI, ops::Range};
+use std::{f32::consts::PI, ops::Range};
 
 pub struct Builder {
     aspect_ratio: f32,
@@ -19,6 +19,7 @@ pub struct Builder {
     vup: Coords,
     defocus_angle: f32,
     focus_dist: f32,
+    cpu_num: usize,
 }
 
 impl Builder {
@@ -34,6 +35,7 @@ impl Builder {
             vup: Coords::new(0.0, 1.0, 0.0),
             defocus_angle: 0.0,
             focus_dist: 10.0,
+            cpu_num: std::thread::available_parallelism().map_or(1, |n| n.get()),
         }
     }
     pub fn aspect_ratio(mut self, x: f32) -> Self {
@@ -74,6 +76,10 @@ impl Builder {
     }
     pub fn focus_dist(mut self, x: f32) -> Self {
         self.focus_dist = x;
+        self
+    }
+    pub fn cpu_num(mut self, x: usize) -> Self {
+        self.cpu_num = x;
         self
     }
 
@@ -122,6 +128,7 @@ impl Builder {
             defocus_disk_u,
             defocus_disk_v,
             self.defocus_angle,
+            self.cpu_num,
         )
     }
 }
@@ -144,8 +151,7 @@ pub struct Camera {
     defocus_disk_v: Coords, // Defocus disk vertical radius
 
     defocus_angle: f32, // Variation angle of rays through each pixel
-
-    rng: RefCell<SmallRng>,
+    cpu_num: usize,
 }
 
 fn random_in_unit_disk(rng: &mut impl Rng) -> Coords {
@@ -176,18 +182,17 @@ fn clamp(range: &Range<f32>, x: f32) -> f32 {
 }
 
 impl Camera {
-    fn defocus_disk_sample(&self) -> Coords {
-        let p = random_in_unit_disk(&mut self.rng.borrow_mut());
+    fn defocus_disk_sample(&self, rng: &mut impl Rng) -> Coords {
+        let p = random_in_unit_disk(rng);
         return self.center + (p.x() * self.defocus_disk_u) + (p.y() * self.defocus_disk_v);
     }
 
-    fn sample_square(&self) -> Coords {
-        let rng = &mut self.rng.borrow_mut();
+    fn sample_square(&self, rng: &mut impl Rng) -> Coords {
         Coords::new(rng.random::<f32>() - 0.5, rng.random::<f32>() - 0.5, 0.0)
     }
 
-    pub fn get_ray(&self, i: usize, j: usize) -> Ray {
-        let offset = self.sample_square();
+    pub fn get_ray(&self, i: usize, j: usize, rng: &mut impl Rng) -> Ray {
+        let offset = self.sample_square(rng);
         let pixel_sample = self.pixel00_loc
             + ((i as f32 + offset.x()) * self.pixel_delta_u)
             + ((j as f32 + offset.y()) * self.pixel_delta_v);
@@ -195,7 +200,7 @@ impl Camera {
         let ray_origin = if self.defocus_angle <= 0.0 {
             self.center
         } else {
-            self.defocus_disk_sample()
+            self.defocus_disk_sample(rng)
         };
         let ray_direction = pixel_sample - ray_origin;
         Ray::new(ray_origin, ray_direction)
@@ -215,11 +220,42 @@ impl Camera {
 
     pub fn render(&self, world: HitableList) -> Vec<Color> {
         let mut result = Vec::with_capacity(self.image.height * self.image.width);
-        for j in 0..self.image.height {
+        let batch_size = self.image.height / self.cpu_num;
+
+        let results = Mutex::new((0..self.cpu_num).map(|_| Vec::new()).collect::<Vec<_>>());
+        thread::scope(|s| {
+            for i in 0..self.cpu_num {
+                let y_start = i * batch_size;
+                let y_end = if i == self.cpu_num - 1 {
+                    self.image.height
+                } else {
+                    (i + 1) * batch_size
+                };
+                let world = &world;
+                let results = &results;
+                s.spawn(move || {
+                    let r = self.render_rows(&world, y_start..y_end);
+                    let mut guard = results.lock().unwrap();
+                    guard[i] = r;
+                });
+            }
+        });
+        let mut guard = results.lock().unwrap();
+        for r in guard.drain(..) {
+            result.extend(r);
+        }
+        result
+    }
+
+    fn render_rows(&self, world: &HitableList, rows: Range<usize>) -> Vec<Color> {
+        let mut rng = SmallRng::from_rng(&mut rand::rng());
+        let height = rows.end - rows.start;
+        let mut result = Vec::with_capacity(height * self.image.width);
+        for j in rows {
             for i in 0..self.image.width {
                 let mut pixel_color = Color::default();
                 for _ in 0..self.samples_per_pixel {
-                    let r = self.get_ray(i, j);
+                    let r = self.get_ray(i, j, &mut rng);
                     pixel_color += self.ray_color(r, &world, self.max_depth);
                 }
                 let color = Self::color_to_8b_format(self.pixel_samples_scale * pixel_color);
@@ -258,6 +294,7 @@ impl Camera {
         defocus_disk_u: Coords,
         defocus_disk_v: Coords,
         defocus_angle: f32,
+        cpu_num: usize,
     ) -> Self {
         Self {
             pixel_samples_scale,
@@ -271,7 +308,7 @@ impl Camera {
             defocus_disk_u,
             defocus_disk_v,
             defocus_angle,
-            rng: RefCell::new(SmallRng::from_rng(&mut rand::rng())),
+            cpu_num,
         }
     }
 }

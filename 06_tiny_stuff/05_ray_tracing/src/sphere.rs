@@ -22,7 +22,7 @@ impl<T: Material> Sphere<T> {
     }
 }
 
-impl<T: Material> hit::Hit for Sphere<T> {
+impl<T: Material + Send + Sync> hit::Hit for Sphere<T> {
     fn hit(&self, r: &crate::ray::Ray, ray_t: Range<f32>) -> Option<hit::HitRecord> {
         let oc = r.origin() - self.center;
         let a = r.direction().dot(r.direction());
