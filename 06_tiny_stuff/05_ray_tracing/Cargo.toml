@@ -7,4 +7,5 @@ edition = "2024"
 name = "ray_tracing"
 
 [dependencies]
+png = "0.17.16"
 rand = { version = "0.9.0", features = [ "small_rng" ] }

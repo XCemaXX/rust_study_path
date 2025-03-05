@@ -1,8 +1,7 @@
 use std::marker::PhantomData;
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Range, Sub};
 
 use rand::Rng;
-use rand::distr::uniform::SampleRange;
 
 #[derive(Default, Debug, Clone, Copy, PartialEq)]
 pub struct Vec3<Tag>(
@@ -21,7 +20,7 @@ impl<Tag> Vec3<Tag> {
         Self(rng.random(), rng.random(), rng.random(), PhantomData)
     }
 
-    pub fn random(rng: &mut impl Rng, range: impl SampleRange<f32> + Clone) -> Self {
+    pub fn random(rng: &mut impl Rng, range: Range<f32>) -> Self {
         Self(
             rng.random_range(range.clone()),
             rng.random_range(range.clone()),

@@ -207,44 +207,38 @@ impl Camera {
     }
 
     fn color_to_8b_format(pixel_color: Color) -> Color {
-        let mut pixel_color = pixel_color;
-        pixel_color = pixel_color.sqrt_axis();
+        let pixel_color = pixel_color.sqrt_axis();
         let intensity = &(0.0..0.999);
-        let color = Color::new(
+        Color::new(
             256.0 * clamp(intensity, pixel_color.r()),
             256.0 * clamp(intensity, pixel_color.g()),
             256.0 * clamp(intensity, pixel_color.b()),
-        );
-        color
+        )
     }
 
     pub fn render(&self, world: HitableList) -> Vec<Color> {
-        let mut result = Vec::with_capacity(self.image.height * self.image.width);
         let batch_size = self.image.height / self.cpu_num;
 
         let results = Mutex::new((0..self.cpu_num).map(|_| Vec::new()).collect::<Vec<_>>());
         thread::scope(|s| {
             for i in 0..self.cpu_num {
                 let y_start = i * batch_size;
-                let y_end = if i == self.cpu_num - 1 {
-                    self.image.height
-                } else {
-                    (i + 1) * batch_size
-                };
+                let y_end = self.image.height.min((i + 1) * batch_size);
                 let world = &world;
                 let results = &results;
                 s.spawn(move || {
-                    let r = self.render_rows(&world, y_start..y_end);
-                    let mut guard = results.lock().unwrap();
-                    guard[i] = r;
+                    let r = self.render_rows(world, y_start..y_end);
+                    results.lock().unwrap()[i] = r;
                 });
             }
         });
-        let mut guard = results.lock().unwrap();
-        for r in guard.drain(..) {
-            result.extend(r);
-        }
-        result
+
+        results
+            .into_inner()
+            .unwrap()
+            .into_iter()
+            .flatten()
+            .collect()
     }
 
     fn render_rows(&self, world: &HitableList, rows: Range<usize>) -> Vec<Color> {
@@ -266,19 +260,21 @@ impl Camera {
     }
 
     fn ray_color(&self, r: Ray, world: &HitableList, depth: usize) -> Color {
-        if depth <= 0 {
+        if depth == 0 {
             return Color::new(0.0, 0.0, 0.0);
         }
-        if let Some(rec) = world.hit(&r, 0.001..f32::MAX) {
-            if let Some((scattered, attenuation)) = rec.material.scatter(&r, &rec) {
-                attenuation * self.ray_color(scattered, world, depth - 1)
-            } else {
-                Color::new(0.0, 0.0, 0.0)
+        match world.hit(&r, 0.001..f32::MAX) {
+            Some(rec) => match rec.material.scatter(&r, &rec) {
+                Some((scattered, attenuation)) => {
+                    attenuation * self.ray_color(scattered, world, depth - 1)
+                }
+                None => Color::new(0.0, 0.0, 0.0),
+            },
+            None => {
+                let unit_direction = r.direction().unit_vector();
+                let a = 0.5 * (unit_direction.y() + 1.0);
+                (1.0 - a) * Color::new(1.0, 1.0, 1.0) + a * Color::new(0.5, 0.7, 1.0)
             }
-        } else {
-            let unit_direction = r.direction().unit_vector();
-            let a = 0.5 * (unit_direction.y() + 1.0);
-            (1.0 - a) * Color::new(1.0, 1.0, 1.0) + a * Color::new(0.5, 0.7, 1.0)
         }
     }
 

@@ -22,7 +22,7 @@ pub struct AlbedoTag;
 impl Mul<Color> for Albedo {
     type Output = Color;
     fn mul(self, rhs: Color) -> Self::Output {
-        Color::new(self.0 * rhs.0, self.1 * rhs.1, self.2 * rhs.2)
+        Color::new(self.0 * rhs.r(), self.1 * rhs.g(), self.2 * rhs.b())
     }
 }
 
