@@ -2,24 +2,24 @@ use crate::coords::Coords;
 
 #[derive(Default)]
 pub struct Ray {
-    a: Coords,
-    b: Coords,
+    orig: Coords,
+    dir: Coords,
 }
 
 impl Ray {
     pub fn new(a: Coords, b: Coords) -> Self {
-        Self {a, b}
+        Self { orig: a, dir: b }
     }
 
     pub fn origin(&self) -> Coords {
-        self.a
+        self.orig
     }
 
     pub fn direction(&self) -> Coords {
-        self.b
+        self.dir
     }
 
-    pub fn point_at_parameter(&self, t: f32) -> Coords {
-        self.a + t * self.b
+    pub fn at(&self, t: f32) -> Coords {
+        self.orig + t * self.dir
     }
 }
