@@ -19,6 +19,10 @@ path = "async_trait.rs"
 name = "cancellation"
 path = "cancellation.rs"
 
+[[bin]]
+name = "yield"
+path = "yield.rs"
+
 [dependencies]
 async-trait = "0.1.80"
 futures = "0.3"

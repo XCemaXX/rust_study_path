@@ -1,0 +1,12 @@
+[package]
+name = "creational"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "builder"
+path = "builder.rs"
+
+[[bin]]
+name = "fold"
+path = "fold.rs"

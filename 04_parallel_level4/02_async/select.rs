@@ -23,13 +23,18 @@ async fn main() {
     let udp_channel = mpsc::channel(32);
 
     tokio::spawn(async move {
+        println!("tcp start");
         sleep(Duration::from_millis(500)).await;
         tcp_channel.0.send("tcp_data".to_string()).await.expect("send err");
+        println!("tcp end");
     });
     tokio::spawn(async move {
+        println!("udp start");
         sleep(Duration::from_millis(50)).await;
         udp_channel.0.send("udp_data".to_string()).await.expect("send err");
+        println!("udp end");
     });
+    println!("lets go");
     let fastest = get_fastest(tcp_channel.1, udp_channel.1).await
         .expect("err");
     println!("Fastest {fastest:?}");

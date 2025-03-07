@@ -1,0 +1,32 @@
+[package]
+name = "behavioural"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "command_trait"
+path = "command_trait.rs"
+
+[[bin]]
+name = "command_fn"
+path = "command_fn.rs"
+
+[[bin]]
+name = "interpreter"
+path = "interpreter.rs"
+
+[[bin]]
+name = "newtype"
+path = "newtype.rs"
+
+[[bin]]
+name = "raii_guard"
+path = "raii_guard.rs"
+
+[[bin]]
+name = "strategy"
+path = "strategy.rs"
+
+[[bin]]
+name = "visitor"
+path = "visitor.rs"

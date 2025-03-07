@@ -8,6 +8,7 @@ async fn sleep_seq_ms(start: &Instant, id: u64, duration_ms: u64) {
 }
 
 async fn sleep_ms(start: &Instant, id: u64, duration_ms: u64) {
+    println!("Future {} started", id);
     tokio::time::sleep(Duration::from_millis(duration_ms)).await;
     println!("Future {} sleeps for {} ms, ended after {} ms", 
         id, duration_ms, start.elapsed().as_millis());
@@ -20,6 +21,6 @@ async fn main() {
     join_all(futures_failed).await;
     println!("########");
     let start = Instant::now();
-    let futures = (1..=5).map(|t| sleep_ms(&start, t, t * 10));
+    let futures = (1..=5).rev().map(|t| sleep_ms(&start, t, t * 10));
     join_all(futures).await;
 }

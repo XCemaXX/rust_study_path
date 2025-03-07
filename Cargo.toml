@@ -38,4 +38,6 @@ members = [
     "08_unsafe_rust/02_ffi_filesystem",
     "09_macro/01_simple",
     "09_macro/02_proc_macro",
+    "10_patterns/01_behavioural",
+    "10_patterns/02_creational",
 ]
