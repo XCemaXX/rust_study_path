@@ -1,0 +1,12 @@
+[package]
+name = "implement_std_types"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "my_vector"
+path = "my_vector.rs"
+
+[[bin]]
+name = "my_arc"
+path = "my_arc.rs"
