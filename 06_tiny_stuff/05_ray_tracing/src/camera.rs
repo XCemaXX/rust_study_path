@@ -4,7 +4,7 @@ use crate::{
     hit::{Hit, HitableList},
 };
 use rand::{Rng, SeedableRng, rngs::SmallRng};
-use std::{sync::Mutex, thread};
+use std::{sync::mpsc::channel, thread};
 
 use std::{f32::consts::PI, ops::Range};
 
@@ -182,6 +182,10 @@ fn clamp(range: &Range<f32>, x: f32) -> f32 {
 }
 
 impl Camera {
+    pub fn builder() -> Builder {
+        Builder::new()
+    }
+
     fn defocus_disk_sample(&self, rng: &mut impl Rng) -> Coords {
         let p = random_in_unit_disk(rng);
         return self.center + (p.x() * self.defocus_disk_u) + (p.y() * self.defocus_disk_v);
@@ -219,25 +223,26 @@ impl Camera {
     pub fn render(&self, world: HitableList) -> Vec<Color> {
         let batch_size = self.image.height / self.cpu_num;
 
-        let results = Mutex::new((0..self.cpu_num).map(|_| Vec::new()).collect::<Vec<_>>());
+        let (tx, rx) = channel();
         thread::scope(|s| {
             for i in 0..self.cpu_num {
                 let y_start = i * batch_size;
                 let y_end = self.image.height.min((i + 1) * batch_size);
                 let world = &world;
-                let results = &results;
+                let tx = tx.clone();
                 s.spawn(move || {
                     let r = self.render_rows(world, y_start..y_end);
-                    results.lock().unwrap()[i] = r;
+                    tx.send((i, r)).unwrap();
                 });
             }
         });
+        drop(tx);
 
-        results
-            .into_inner()
-            .unwrap()
+        let mut bathes = rx.iter().collect::<Vec<_>>();
+        bathes.sort_by_key(|&(i, _)| i);
+        bathes
             .into_iter()
-            .flatten()
+            .flat_map(|(_, batch)| batch)
             .collect()
     }
 

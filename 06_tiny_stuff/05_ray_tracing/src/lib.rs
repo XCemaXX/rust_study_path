@@ -7,6 +7,7 @@ mod ray;
 mod sphere;
 mod vec3;
 
+use camera::Camera;
 pub use color::Color;
 use coords::Coords;
 use hit::HitableList;
@@ -106,7 +107,7 @@ pub fn render_world() -> Image {
     //let world = simple_scene();
     let world = random_scene();
 
-    let camera = camera::Builder::new()
+    let camera = Camera::builder()
         .aspect_ratio(16.0 / 9.0)
         .image_width(200)
         //.image_width(800)

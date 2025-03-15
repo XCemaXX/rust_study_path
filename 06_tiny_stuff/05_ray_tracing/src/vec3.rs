@@ -31,6 +31,7 @@ impl<Tag> Vec3<Tag> {
 
     pub fn unit_vector(self) -> Self {
         let l = self.length();
+        assert_ne!(l, 0.0);
         self / l
     }
 
@@ -112,6 +113,9 @@ impl<Tag> Mul for Vec3<Tag> {
 impl<Tag> Div for Vec3<Tag> {
     type Output = Self;
     fn div(self, other: Self) -> Self::Output {
+        assert_ne!(other.0, 0.0);
+        assert_ne!(other.1, 0.0);
+        assert_ne!(other.2, 0.0);
         Self::new(self.0 / other.0, self.1 / other.1, self.2 / other.2)
     }
 }
@@ -151,6 +155,7 @@ impl<Tag> Div<f32> for Vec3<Tag> {
     type Output = Self;
     fn div(self, scalar: f32) -> Self {
         let mut tmp = self;
+        assert_ne!(scalar, 0.0);
         tmp /= scalar;
         tmp
     }
@@ -158,6 +163,7 @@ impl<Tag> Div<f32> for Vec3<Tag> {
 
 impl<Tag> DivAssign<f32> for Vec3<Tag> {
     fn div_assign(&mut self, scalar: f32) {
+        assert_ne!(scalar, 0.0);
         self.0 /= scalar;
         self.1 /= scalar;
         self.2 /= scalar;
