@@ -70,7 +70,8 @@ pub fn random_scene() -> HitableList {
                 if choose_mat < 0.75 {
                     let diffuse =
                         Lambertian::new(Albedo::random1(&mut rng) * Albedo::random1(&mut rng));
-                    world.push(Box::new(Sphere::new(center, 0.2, diffuse)));
+                    let center2 = center + Coords::new(0.0, rng.random_range(0.0..0.5), 0.0);
+                    world.push(Box::new(Sphere::new_moving(center, center2, 0.2, diffuse)));
                 } else if choose_mat < 0.93 {
                     let metal = Metal::new(
                         Albedo::random(&mut rng, 0.5..1.0),
@@ -109,9 +110,9 @@ pub fn render_world() -> Image {
 
     let camera = Camera::builder()
         .aspect_ratio(16.0 / 9.0)
-        .image_width(200)
+        .image_width(400)
         //.image_width(800)
-        .samples_per_pixel(100)
+        .samples_per_pixel(80)
         .max_depth(50)
         .vfov(20.0)
         .lookfrom(Coords::new(13.0, 2.0, 3.0))

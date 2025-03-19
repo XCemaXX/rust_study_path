@@ -17,13 +17,13 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, _: &Ray, rec: &HitRecord) -> Option<(Ray, Albedo)> {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Albedo)> {
         let mut scatter_direction = LAMBERTIAN_RNG
             .with(|rng| rec.normal + Coords::random_unit_vector(&mut rng.borrow_mut()));
         if scatter_direction.near_zero() {
             scatter_direction = rec.normal;
         };
-        let scattered = Ray::new(rec.p, scatter_direction);
+        let scattered = Ray::new_timed(rec.p, scatter_direction, r_in.time());
         Some((scattered, self.albedo))
     }
 }

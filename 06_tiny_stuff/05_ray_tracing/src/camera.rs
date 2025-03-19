@@ -195,7 +195,7 @@ impl Camera {
         Coords::new(rng.random::<f32>() - 0.5, rng.random::<f32>() - 0.5, 0.0)
     }
 
-    pub fn get_ray(&self, i: usize, j: usize, rng: &mut impl Rng) -> Ray {
+    fn get_ray(&self, i: usize, j: usize, rng: &mut impl Rng) -> Ray {
         let offset = self.sample_square(rng);
         let pixel_sample = self.pixel00_loc
             + ((i as f32 + offset.x()) * self.pixel_delta_u)
@@ -207,7 +207,8 @@ impl Camera {
             self.defocus_disk_sample(rng)
         };
         let ray_direction = pixel_sample - ray_origin;
-        Ray::new(ray_origin, ray_direction)
+        let ray_time = rng.random::<f32>();
+        Ray::new_timed(ray_origin, ray_direction, ray_time)
     }
 
     fn color_to_8b_format(pixel_color: Color) -> Color {
@@ -221,13 +222,17 @@ impl Camera {
     }
 
     pub fn render(&self, world: HitableList) -> Vec<Color> {
-        let batch_size = self.image.height / self.cpu_num;
+        let batch_size = self.image.height /self.cpu_num;
 
         let (tx, rx) = channel();
         thread::scope(|s| {
             for i in 0..self.cpu_num {
                 let y_start = i * batch_size;
-                let y_end = self.image.height.min((i + 1) * batch_size);
+                let y_end = if i + 1 == self.cpu_num {
+                    self.image.height
+                } else {
+                    (i + 1) * batch_size
+                };
                 let world = &world;
                 let tx = tx.clone();
                 s.spawn(move || {
