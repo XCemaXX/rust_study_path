@@ -1,3 +1,4 @@
+use crate::texture::clamp;
 use crate::{
     Coords, Ray,
     color::Color,
@@ -169,16 +170,6 @@ fn random_in_unit_disk(rng: &mut impl Rng) -> Coords {
 
 fn degrees_to_radians(degrees: f32) -> f32 {
     degrees * PI / 180.0
-}
-
-fn clamp(range: &Range<f32>, x: f32) -> f32 {
-    if x < range.start {
-        range.start
-    } else if x > range.end {
-        range.end
-    } else {
-        x
-    }
 }
 
 impl Camera {

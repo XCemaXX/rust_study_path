@@ -18,7 +18,7 @@ use material::{Dielectric, Lambertian, Metal};
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 use ray::Ray;
 use sphere::Sphere;
-use texture::{CheckerTexture, Texture};
+use texture::{CheckerTexture, ImageTexture, Texture};
 use vec3::Vec3;
 
 pub fn simple_scene() -> HitableList {
@@ -130,6 +130,16 @@ pub fn checkered_spheres_scene() -> HitableList {
     world
 }
 
+pub fn earth_scene() -> HitableList {
+    let mut world = HitableList::new();
+    const EARTH_TEXTURE_RAW: &'static [u8] = include_bytes!("../assets/earthmap.png");
+    let earth_texture: Box<dyn Texture + Send + Sync> = Box::new(ImageTexture::from_png(EARTH_TEXTURE_RAW));
+    let earth = Lambertian::from_texture(earth_texture);
+    let globe = Box::new(Sphere::new(Vec3::new(0.0, 0.0, 0.0), 2.0, earth));
+    world.push(globe);
+    world
+}
+
 pub struct Image {
     pub pixels: Vec<Color>,
     pub width: u32,
@@ -138,8 +148,9 @@ pub struct Image {
 
 pub fn render_world() -> Image {
     //let world = simple_scene();
-    let world = bouncing_spheres_scene();
+    //let world = bouncing_spheres_scene();
     //let world = checkered_spheres_scene();
+    let world = earth_scene();
     let world = BvhNode::from_list(world);
 
     let camera = Camera::builder()
