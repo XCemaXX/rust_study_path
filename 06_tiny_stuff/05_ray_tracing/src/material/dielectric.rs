@@ -30,8 +30,8 @@ fn reflectance(cosine: f32, refraction_index: f32) -> f32 {
 }
 
 impl Material for Dielectric {
-    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Albedo)> {
-        let attenuation = Albedo::new(1.0, 1.0, 1.0);
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
+        let attenuation = Color::new(1.0, 1.0, 1.0);
         let ri = if rec.front_face {
             1.0 / self.ref_idx
         } else {

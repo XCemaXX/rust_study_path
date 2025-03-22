@@ -12,10 +12,12 @@ pub use bvh::BvhNode;
 pub use hitable_list::HitableList;
 
 pub struct HitRecord<'a> {
-    pub t: f32,
     pub p: Coords,
     pub normal: Coords,
     pub material: &'a dyn Material,
+    pub t: f32,
+    pub u: f32,
+    pub v: f32,
     pub front_face: bool,
 }
 
@@ -35,10 +37,12 @@ impl HitRecord<'_> {
 
     pub fn new<'a>(t: f32, p: Coords, normal: Coords, material: &'a dyn Material) -> HitRecord<'a> {
         HitRecord {
-            t,
             p,
             normal,
             material,
+            t,
+            u: 0.0,
+            v: 0.0,
             front_face: true,
         }
     }

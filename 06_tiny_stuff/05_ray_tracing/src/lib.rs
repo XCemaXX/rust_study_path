@@ -5,16 +5,20 @@ mod hit;
 mod material;
 mod ray;
 mod sphere;
+mod texture;
 mod vec3;
+
+use std::sync::Arc;
 
 use camera::Camera;
 pub use color::Color;
 use coords::Coords;
 use hit::{BvhNode, HitableList};
-use material::{Albedo, Dielectric, Lambertian, Metal};
+use material::{Dielectric, Lambertian, Metal};
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 use ray::Ray;
 use sphere::Sphere;
+use texture::{CheckerTexture, Texture};
 use vec3::Vec3;
 
 pub fn simple_scene() -> HitableList {
@@ -22,9 +26,9 @@ pub fn simple_scene() -> HitableList {
     world.push(Box::new(Sphere::new(
         Vec3::new(0.0, 0.0, -1.2),
         0.5,
-        Lambertian::new(Albedo::new(0.1, 0.2, 0.5)),
+        Lambertian::from_color(Color::new(0.1, 0.2, 0.5)),
     )));
-    let ground = Lambertian::new(Albedo::new(0.8, 0.8, 0.0));
+    let ground = Lambertian::from_color(Color::new(0.8, 0.8, 0.0));
     world.push(Box::new(Sphere::new(
         Vec3::new(0.0, -100.5, -1.0),
         100.0,
@@ -33,7 +37,7 @@ pub fn simple_scene() -> HitableList {
     world.push(Box::new(Sphere::new(
         Vec3::new(1.0, 0.0, -1.0),
         0.5,
-        Metal::new(Albedo::new(0.8, 0.6, 0.2), 0.1),
+        Metal::new(Color::new(0.8, 0.6, 0.2), 0.1),
     )));
     world.push(Box::new(Sphere::new(
         Vec3::new(-1.0, 0.0, -1.0),
@@ -48,10 +52,16 @@ pub fn simple_scene() -> HitableList {
     world
 }
 
-pub fn random_scene() -> HitableList {
+pub fn bouncing_spheres_scene() -> HitableList {
     let mut rng = SmallRng::from_rng(&mut rand::rng());
     let mut world = HitableList::new();
-    let ground = Lambertian::new(Albedo::new(0.5, 0.5, 0.5));
+
+    let checker = Box::new(CheckerTexture::from_colors(
+        0.32,
+        Color::new(0.2, 0.3, 0.1),
+        Color::new(0.9, 0.9, 0.9),
+    ));
+    let ground = Lambertian::from_texture(checker);
     world.push(Box::new(Sphere::new(
         Vec3::new(0.0, -1000.0, 0.0),
         1000.0,
@@ -69,12 +79,12 @@ pub fn random_scene() -> HitableList {
                 let choose_mat = rng.random::<f32>();
                 if choose_mat < 0.75 {
                     let diffuse =
-                        Lambertian::new(Albedo::random1(&mut rng) * Albedo::random1(&mut rng));
+                        Lambertian::from_color(Color::random1(&mut rng) * Color::random1(&mut rng));
                     let center2 = center + Coords::new(0.0, rng.random_range(0.0..0.5), 0.0);
                     world.push(Box::new(Sphere::new_moving(center, center2, 0.2, diffuse)));
                 } else if choose_mat < 0.93 {
                     let metal = Metal::new(
-                        Albedo::random(&mut rng, 0.5..1.0),
+                        Color::random(&mut rng, 0.5..1.0),
                         rng.random_range(0.0..0.5),
                     );
                     world.push(Box::new(Sphere::new(center, 0.2, metal)));
@@ -87,14 +97,36 @@ pub fn random_scene() -> HitableList {
     }
     let glass = Dielectric::new(1.5);
     world.push(Box::new(Sphere::new(Vec3::new(0.0, 1.0, 0.0), 1.0, glass)));
-    let diffuse = Lambertian::new(Albedo::new(0.4, 0.2, 0.1));
+    let diffuse = Lambertian::from_color(Color::new(0.4, 0.2, 0.1));
     world.push(Box::new(Sphere::new(
         Vec3::new(-4.0, 1.0, 0.0),
         1.0,
         diffuse,
     )));
-    let metal = Metal::new(Albedo::new(0.7, 0.6, 0.5), 0.0);
+    let metal = Metal::new(Color::new(0.7, 0.6, 0.5), 0.0);
     world.push(Box::new(Sphere::new(Vec3::new(4.0, 1.0, 0.0), 1.0, metal)));
+    world
+}
+
+pub fn checkered_spheres_scene() -> HitableList {
+    let mut world = HitableList::new();
+
+    let checker: Box<dyn Texture + Send + Sync> = Box::new(CheckerTexture::from_colors(
+        0.32,
+        Color::new(0.2, 0.3, 0.1),
+        Color::new(0.9, 0.9, 0.9),
+    ));
+    let checker = Arc::new(checker);
+    world.push(Box::new(Sphere::new(
+        Vec3::new(0.0, -10.0, 0.0),
+        10.0,
+        Lambertian::from_shared_texture(checker.clone()),
+    )));
+    world.push(Box::new(Sphere::new(
+        Vec3::new(0.0, 10.0, 0.0),
+        10.0,
+        Lambertian::from_shared_texture(checker),
+    )));
     world
 }
 
@@ -106,7 +138,8 @@ pub struct Image {
 
 pub fn render_world() -> Image {
     //let world = simple_scene();
-    let world = random_scene();
+    let world = bouncing_spheres_scene();
+    //let world = checkered_spheres_scene();
     let world = BvhNode::from_list(world);
 
     let camera = Camera::builder()
