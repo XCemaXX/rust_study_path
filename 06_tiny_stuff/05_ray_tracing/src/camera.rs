@@ -1,7 +1,7 @@
 use crate::{
     Coords, Ray,
     color::Color,
-    hit::{Hit, HitableList},
+    hit::Hit,
 };
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 use std::{sync::mpsc::channel, thread};
@@ -221,7 +221,7 @@ impl Camera {
         )
     }
 
-    pub fn render(&self, world: HitableList) -> Vec<Color> {
+    pub fn render(&self, world: &dyn Hit) -> Vec<Color> {
         let batch_size = self.image.height /self.cpu_num;
 
         let (tx, rx) = channel();
@@ -233,7 +233,6 @@ impl Camera {
                 } else {
                     (i + 1) * batch_size
                 };
-                let world = &world;
                 let tx = tx.clone();
                 s.spawn(move || {
                     let r = self.render_rows(world, y_start..y_end);
@@ -251,7 +250,7 @@ impl Camera {
             .collect()
     }
 
-    fn render_rows(&self, world: &HitableList, rows: Range<usize>) -> Vec<Color> {
+    fn render_rows(&self, world: &dyn Hit, rows: Range<usize>) -> Vec<Color> {
         let mut rng = SmallRng::from_rng(&mut rand::rng());
         let height = rows.end - rows.start;
         let mut result = Vec::with_capacity(height * self.image.width);
@@ -260,7 +259,7 @@ impl Camera {
                 let mut pixel_color = Color::default();
                 for _ in 0..self.samples_per_pixel {
                     let r = self.get_ray(i, j, &mut rng);
-                    pixel_color += self.ray_color(r, &world, self.max_depth);
+                    pixel_color += self.ray_color(r, world, self.max_depth);
                 }
                 let color = Self::color_to_8b_format(self.pixel_samples_scale * pixel_color);
                 result.push(color);
@@ -269,7 +268,7 @@ impl Camera {
         result
     }
 
-    fn ray_color(&self, r: Ray, world: &HitableList, depth: usize) -> Color {
+    fn ray_color(&self, r: Ray, world: &dyn Hit, depth: usize) -> Color {
         if depth == 0 {
             return Color::new(0.0, 0.0, 0.0);
         }

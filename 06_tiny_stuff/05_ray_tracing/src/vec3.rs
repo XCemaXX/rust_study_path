@@ -1,5 +1,5 @@
 use std::marker::PhantomData;
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Range, Sub};
+use std::ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Neg, Range, Sub};
 
 use rand::Rng;
 
@@ -185,5 +185,25 @@ impl<Tag> From<Vec3<Tag>> for (f32, f32, f32) {
 impl<Tag> From<(f32, f32, f32)> for Vec3<Tag> {
     fn from(t: (f32, f32, f32)) -> Self {
         Self::new(t.0, t.1, t.2)
+    }
+}
+
+#[derive(Clone, Copy)]
+pub enum Axis {
+    X,
+    Y,
+    Z,
+}
+
+impl<Tag> Index<Axis> for Vec3<Tag> {
+    type Output = f32;
+
+    fn index(&self, index: Axis) -> &Self::Output {
+        use Axis::*;
+        match index {
+            X => &self.0,
+            Y => &self.1,
+            Z => &self.2,
+        }
     }
 }

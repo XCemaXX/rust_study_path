@@ -1,8 +1,15 @@
+mod aabb;
+mod bvh;
+mod hitable_list;
+
 use std::ops::Range;
 
 use crate::Coords;
 use crate::material::Material;
 use crate::ray::Ray;
+pub use aabb::Aabb;
+pub use bvh::BvhNode;
+pub use hitable_list::HitableList;
 
 pub struct HitRecord<'a> {
     pub t: f32,
@@ -39,21 +46,6 @@ impl HitRecord<'_> {
 
 pub trait Hit: Send + Sync {
     fn hit(&self, r: &Ray, ray_t: Range<f32>) -> Option<HitRecord>;
-}
 
-pub type HitableList = Vec<Box<dyn Hit>>;
-
-impl Hit for HitableList {
-    fn hit(&self, r: &Ray, ray_t: Range<f32>) -> Option<HitRecord> {
-        let mut hit_anything = None;
-        let mut closest_so_far = ray_t.end;
-        for obj in self {
-            let temp_rec = obj.hit(r, ray_t.start..closest_so_far);
-            if let Some(rec) = temp_rec {
-                closest_so_far = rec.t;
-                hit_anything = Some(rec);
-            }
-        }
-        hit_anything
-    }
+    fn bounding_box(&self) -> Aabb;
 }

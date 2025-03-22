@@ -10,7 +10,7 @@ mod vec3;
 use camera::Camera;
 pub use color::Color;
 use coords::Coords;
-use hit::HitableList;
+use hit::{BvhNode, HitableList};
 use material::{Albedo, Dielectric, Lambertian, Metal};
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 use ray::Ray;
@@ -107,6 +107,7 @@ pub struct Image {
 pub fn render_world() -> Image {
     //let world = simple_scene();
     let world = random_scene();
+    let world = BvhNode::from_list(world);
 
     let camera = Camera::builder()
         .aspect_ratio(16.0 / 9.0)
@@ -121,7 +122,7 @@ pub fn render_world() -> Image {
         .defocus_angle(0.6)
         .focus_dist(10.0)
         .build();
-    let pixels = camera.render(world);
+    let pixels = camera.render(&world);
 
     Image {
         pixels: pixels,
