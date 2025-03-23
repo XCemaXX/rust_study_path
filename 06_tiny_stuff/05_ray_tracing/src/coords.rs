@@ -2,7 +2,7 @@ use crate::vec3::Vec3;
 
 pub type Coords = Vec3<CoordsTag>;
 
-#[derive(Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct CoordsTag;
 
 impl Coords {

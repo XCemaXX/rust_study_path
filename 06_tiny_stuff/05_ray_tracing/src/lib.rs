@@ -18,7 +18,7 @@ use material::{Dielectric, Lambertian, Metal};
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 use ray::Ray;
 use sphere::Sphere;
-use texture::{CheckerTexture, ImageTexture, Texture};
+use texture::{CheckerTexture, ImageTexture, NoiseTexture, Texture};
 use vec3::Vec3;
 
 pub fn simple_scene() -> HitableList {
@@ -139,6 +139,24 @@ pub fn earth_scene() -> HitableList {
     world
 }
 
+pub fn perlin_spheres_scene() -> HitableList {
+    let mut world = HitableList::new();
+    let noise: Box<dyn Texture> = Box::new(NoiseTexture::new(4.0));
+    let noise = Arc::new(noise);
+    world.push(Box::new(Sphere::new(
+        Vec3::new(0.0, -1000.0, 0.0),
+        1000.0,
+        Lambertian::from_shared_texture(noise.clone()),
+    )));
+    world.push(Box::new(Sphere::new(
+        Vec3::new(0.0, 2.0, 0.0),
+        2.0,
+        Lambertian::from_shared_texture(noise),
+    )));
+
+    world
+}
+
 pub struct Image {
     pub pixels: Vec<Color>,
     pub width: u32,
@@ -149,14 +167,15 @@ pub fn render_world() -> Image {
     //let world = simple_scene();
     //let world = bouncing_spheres_scene();
     //let world = checkered_spheres_scene();
-    let world = earth_scene();
+    //let world = earth_scene();
+    let world = perlin_spheres_scene();
     let world = BvhNode::from_list(world);
 
     let camera = Camera::builder()
         .aspect_ratio(16.0 / 9.0)
         .image_width(400)
         //.image_width(800)
-        .samples_per_pixel(80)
+        .samples_per_pixel(100)
         .max_depth(50)
         .vfov(20.0)
         .lookfrom(Coords::new(13.0, 2.0, 3.0))
