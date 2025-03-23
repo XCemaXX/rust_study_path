@@ -10,7 +10,7 @@ pub use lambertian::Lambertian;
 pub use metal::Metal;
 use rand::Rng;
 
-pub trait Material {
+pub trait Material: Sync {
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)>;
 }
 

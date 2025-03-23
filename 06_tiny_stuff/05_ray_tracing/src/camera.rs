@@ -79,6 +79,7 @@ impl Builder {
         self.focus_dist = x;
         self
     }
+    #[allow(dead_code)]
     pub fn cpu_num(mut self, x: usize) -> Self {
         self.cpu_num = x;
         self

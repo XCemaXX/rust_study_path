@@ -1,4 +1,4 @@
-use std::io::Cursor;
+use std::{io::Cursor, ops::Range};
 
 use crate::Color;
 use png::{ColorType, Decoder};
@@ -21,32 +21,45 @@ pub fn load_png(png_data: &[u8]) -> Result<Vec<Vec<Color>>, Box<dyn std::error::
     };
 
     let pixels: Vec<_> = match info.color_type {
-        ColorType::Rgb => process_pixels(3, |chunk| {
-            Color::new(
-                chunk[0] as f32 / 255.0,
-                chunk[1] as f32 / 255.0,
-                chunk[2] as f32 / 255.0,
-            )
-        }),
-        ColorType::Rgba => process_pixels(4, |chunk| {
-            Color::new(
-                chunk[0] as f32 / 255.0,
-                chunk[1] as f32 / 255.0,
-                chunk[2] as f32 / 255.0,
-            )
-        }),
-        ColorType::Grayscale => process_pixels(1, |chunk| {
-            let v = chunk[0] as f32 / 255.0;
-            Color::new(v, v, v)
-        }),
-        ColorType::GrayscaleAlpha => process_pixels(2, |chunk| {
-            let v = chunk[0] as f32 / 255.0;
-            Color::new(v, v, v)
-        }),
+        ColorType::Rgb | ColorType::Rgba => {
+            let chunk_size = if info.color_type == ColorType::Rgb {
+                3
+            } else {
+                4
+            };
+            process_pixels(chunk_size, |chunk| {
+                Color::new(
+                    chunk[0] as f32 / 255.0,
+                    chunk[1] as f32 / 255.0,
+                    chunk[2] as f32 / 255.0,
+                )
+            })
+        }
+        ColorType::Grayscale | ColorType::GrayscaleAlpha => {
+            let chunk_size = if info.color_type == ColorType::Grayscale {
+                1
+            } else {
+                2
+            };
+            process_pixels(chunk_size, |chunk| {
+                let v = chunk[0] as f32 / 255.0;
+                Color::new(v, v, v)
+            })
+        }
         _ => return Err("Unsupported color type".into()),
     };
     if height != pixels.len() {
         return Err("Fail to get pixel info from png".into());
     }
     Ok(pixels)
+}
+
+pub fn clamp(range: &Range<f32>, x: f32) -> f32 {
+    if x < range.start {
+        range.start
+    } else if x > range.end {
+        range.end
+    } else {
+        x
+    }
 }

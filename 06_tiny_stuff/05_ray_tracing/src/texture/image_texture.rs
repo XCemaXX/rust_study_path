@@ -16,7 +16,7 @@ impl ImageTexture {
 }
 
 impl Texture for ImageTexture {
-    fn value(&self, u: f32, v: f32, p: crate::coords::Coords) -> Color {
+    fn value(&self, u: f32, v: f32, _: crate::coords::Coords) -> Color {
         let height = self.pixels.len();
         if height == 0 {
             return Color::new(0.0, 1.0, 1.0);

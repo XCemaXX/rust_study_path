@@ -111,7 +111,7 @@ pub fn bouncing_spheres_scene() -> HitableList {
 pub fn checkered_spheres_scene() -> HitableList {
     let mut world = HitableList::new();
 
-    let checker: Box<dyn Texture + Send + Sync> = Box::new(CheckerTexture::from_colors(
+    let checker: Box<dyn Texture> = Box::new(CheckerTexture::from_colors(
         0.32,
         Color::new(0.2, 0.3, 0.1),
         Color::new(0.9, 0.9, 0.9),
@@ -133,8 +133,7 @@ pub fn checkered_spheres_scene() -> HitableList {
 pub fn earth_scene() -> HitableList {
     let mut world = HitableList::new();
     const EARTH_TEXTURE_RAW: &'static [u8] = include_bytes!("../assets/earthmap.png");
-    let earth_texture: Box<dyn Texture + Send + Sync> = Box::new(ImageTexture::from_png(EARTH_TEXTURE_RAW));
-    let earth = Lambertian::from_texture(earth_texture);
+    let earth = Lambertian::from_texture(Box::new(ImageTexture::from_png(EARTH_TEXTURE_RAW)));
     let globe = Box::new(Sphere::new(Vec3::new(0.0, 0.0, 0.0), 2.0, earth));
     world.push(globe);
     world

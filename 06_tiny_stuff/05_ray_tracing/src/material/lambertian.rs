@@ -9,7 +9,7 @@ thread_local! {
 }
 
 pub struct Lambertian {
-    texture: Arc<Box<dyn Texture + Send + Sync>>,
+    texture: Arc<Box<dyn Texture>>,
 }
 
 impl Lambertian {
@@ -19,11 +19,11 @@ impl Lambertian {
         }
     }
 
-    pub fn from_shared_texture(texture: Arc<Box<dyn Texture + Send + Sync>>) -> Self {
+    pub fn from_shared_texture(texture: Arc<Box<dyn Texture>>) -> Self {
         Self { texture }
     }
 
-    pub fn from_texture(texture: Box<dyn Texture + Send + Sync>) -> Self {
+    pub fn from_texture(texture: Box<dyn Texture>) -> Self {
         Self {
             texture: Arc::new(texture),
         }

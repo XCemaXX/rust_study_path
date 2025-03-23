@@ -57,7 +57,7 @@ impl<T: Material> Sphere<T> {
     }
 }
 
-impl<T: Material + Send + Sync> hit::Hit for Sphere<T> {
+impl<T: Material> hit::Hit for Sphere<T> {
     fn hit(&self, r: &crate::ray::Ray, ray_t: Range<f32>) -> Option<hit::HitRecord> {
         let current_center = self.center.at(r.time());
         let oc = r.origin() - current_center;
