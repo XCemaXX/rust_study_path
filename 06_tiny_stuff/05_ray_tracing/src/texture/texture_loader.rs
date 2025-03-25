@@ -55,11 +55,5 @@ pub fn load_png(png_data: &[u8]) -> Result<Vec<Vec<Color>>, Box<dyn std::error::
 }
 
 pub fn clamp(range: &Range<f32>, x: f32) -> f32 {
-    if x < range.start {
-        range.start
-    } else if x > range.end {
-        range.end
-    } else {
-        x
-    }
+    x.clamp(range.start, range.end)
 }

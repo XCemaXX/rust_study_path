@@ -10,14 +10,19 @@ pub struct Aabb {
 
 impl Aabb {
     pub fn new(x: Range<f32>, y: Range<f32>, z: Range<f32>) -> Self {
-        Self { x, y, z }
+        let delta = 0.0001;
+        Self {
+            x: expand(x, delta),
+            y: expand(y, delta),
+            z: expand(z, delta),
+        }
     }
 
     pub fn from_points(a: Coords, b: Coords) -> Self {
         let x = a.x().min(b.x())..a.x().max(b.x());
         let y = a.y().min(b.y())..a.y().max(b.y());
         let z = a.z().min(b.z())..a.z().max(b.z());
-        Self { x, y, z }
+        Self::new(x, y, z)
     }
 
     pub fn from_boxes(a: Self, b: Self) -> Self {
@@ -85,4 +90,9 @@ impl Index<Axis> for Aabb {
             Z => &self.z,
         }
     }
+}
+
+fn expand(r: Range<f32>, delta: f32) -> Range<f32> {
+    let padding = delta / 2.0;
+    (r.start - padding)..(r.end + padding)
 }
