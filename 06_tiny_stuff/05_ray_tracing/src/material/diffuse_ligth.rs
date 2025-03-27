@@ -18,6 +18,7 @@ impl DiffuseLight {
         }
     }
 
+    #[allow(dead_code)]
     pub fn from_texture<T: IntoSharedTexture>(texture: T) -> Self {
         Self {
             texture: texture.into_arc(),

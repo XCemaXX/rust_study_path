@@ -13,11 +13,11 @@ pub use metal::Metal;
 use rand::Rng;
 
 pub trait Material: Sync + Send {
-    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
+    fn scatter(&self, _r_in: &Ray, _rec: &HitRecord) -> Option<(Ray, Color)> {
         None
     }
 
-    fn emitted(&self, u: f32, v: f32, p: Coords) -> Color {
+    fn emitted(&self, _u: f32, _v: f32, _p: Coords) -> Color {
         Color::default()
     }
 }

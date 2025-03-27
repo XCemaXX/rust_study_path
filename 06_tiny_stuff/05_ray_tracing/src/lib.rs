@@ -13,9 +13,9 @@ use std::sync::Arc;
 use camera::Camera;
 pub use color::Color;
 use coords::Coords;
-use hit::{BvhNode, HitableList};
+use hit::{BvhNode, HitableList, Transformable};
 use material::{Dielectric, DiffuseLight, Lambertian, Material, Metal};
-use objects::{Quad, Sphere};
+use objects::{BoxObj, Quad, Sphere};
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 use ray::Ray;
 use texture::{CheckerTexture, ImageTexture, NoiseTexture, Texture};
@@ -288,8 +288,25 @@ pub fn cornell_box_scene() -> (HitableList, Camera) {
         Coords::new(0.0, 0.0, 555.0),
         Coords::new(555.0, 0.0, 0.0),
         Coords::new(0.0, 555.0, 0.0),
-        white,
+        white.clone(),
     ));
+
+    let box1 = BoxObj::new(
+        Coords::new(0.0, 0.0, 0.0),
+        Coords::new(165.0, 330.0, 165.0),
+        white.clone(),
+    )
+    .rotate_y(15.0)
+    .translate(Coords::new(265.0, 0.0, 295.0));
+    world.push(box1);
+    let box2 = BoxObj::new(
+        Coords::new(0.0, 0.0, 0.0),
+        Coords::new(165.0, 165.0, 165.0),
+        white.clone(),
+    )
+    .rotate_y(-18.0)
+    .translate(Coords::new(130.0, 0.0, 65.0));
+    world.push(box2);
 
     let camera = Camera::builder()
         .aspect_ratio(1.0)

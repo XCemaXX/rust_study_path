@@ -1,5 +1,5 @@
 use crate::{coords::Coords, ray::Ray, vec3::Axis};
-use std::ops::{Index, Range};
+use std::ops::{Add, Index, Range};
 
 #[derive(Clone)]
 pub struct Aabb {
@@ -39,7 +39,7 @@ impl Aabb {
 
         let mut start = ray_t.start;
         let mut end = ray_t.end;
-        for axis in [Axis::X, Axis::Y, Axis::Z].into_iter() {
+        for axis in [Axis::X, Axis::Y, Axis::Z] {
             let ax = &self[axis];
             let adinv = 1.0 / ray_dir[axis];
 
@@ -77,6 +77,24 @@ impl Aabb {
         .unwrap()
         .0
     }
+
+    pub fn corners(&self) -> [Coords; 8] {
+        let [x_min, x_max] = [self.x.start, self.x.end];
+        let [y_min, y_max] = [self.y.start, self.y.end];
+        let [z_min, z_max] = [self.z.start, self.z.end];
+
+        [x_min, x_max]
+            .into_iter()
+            .flat_map(|x| [y_min, y_max].into_iter().map(move |y| (x, y)))
+            .flat_map(|(x, y)| {
+                [z_min, z_max]
+                    .into_iter()
+                    .map(move |z| Coords::new(x, y, z))
+            })
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap()
+    }
 }
 
 impl Index<Axis> for Aabb {
@@ -95,4 +113,19 @@ impl Index<Axis> for Aabb {
 fn expand(r: Range<f32>, delta: f32) -> Range<f32> {
     let padding = delta / 2.0;
     (r.start - padding)..(r.end + padding)
+}
+
+impl Add<Coords> for Aabb {
+    type Output = Aabb;
+    fn add(self, offset: Coords) -> Self::Output {
+        Aabb::new(
+            displace(self.x, offset.x()),
+            displace(self.y, offset.y()),
+            displace(self.z, offset.z()),
+        )
+    }
+}
+
+fn displace(r: Range<f32>, displacement: f32) -> Range<f32> {
+    (r.start + displacement)..(r.end + displacement)
 }

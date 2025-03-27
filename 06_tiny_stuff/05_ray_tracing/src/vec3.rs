@@ -188,6 +188,12 @@ impl<Tag> From<(f32, f32, f32)> for Vec3<Tag> {
     }
 }
 
+impl<Tag> From<[f32; 3]> for Vec3<Tag> {
+    fn from(v: [f32; 3]) -> Self {
+        Self::new(v[0], v[1], v[2])
+    }
+}
+
 #[derive(Clone, Copy)]
 pub enum Axis {
     X,

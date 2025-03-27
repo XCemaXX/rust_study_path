@@ -21,7 +21,7 @@ impl BvhNode {
     fn build(objects: Vec<Box<dyn Hit>>) -> Self {
         let mut bbox = Aabb::empty();
         for object in &objects {
-            bbox = Aabb::from_boxes(bbox, object.bounding_box());
+            bbox = Aabb::from_boxes(bbox, object.bounding_box().clone());
         }
 
         let mut objects = objects;
@@ -81,8 +81,8 @@ impl Hit for BvhNode {
         }
     }
 
-    fn bounding_box(&self) -> Aabb {
-        self.bbox.clone()
+    fn bounding_box(&self) -> &Aabb {
+        &self.bbox
     }
 }
 

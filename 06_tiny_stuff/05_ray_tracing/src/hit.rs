@@ -1,6 +1,8 @@
 mod aabb;
 mod bvh;
 mod hitable_list;
+mod rotate_y;
+mod translate;
 
 use std::ops::Range;
 
@@ -10,6 +12,8 @@ use crate::ray::Ray;
 pub use aabb::Aabb;
 pub use bvh::BvhNode;
 pub use hitable_list::HitableList;
+use rotate_y::RotateY;
+use translate::Translate;
 
 pub struct HitRecord<'a> {
     pub p: Coords,
@@ -51,5 +55,17 @@ impl HitRecord<'_> {
 pub trait Hit: Sync {
     fn hit(&self, r: &Ray, ray_t: Range<f32>) -> Option<HitRecord>;
 
-    fn bounding_box(&self) -> Aabb;
+    fn bounding_box(&self) -> &Aabb;
 }
+
+pub trait Transformable: Hit + Sized {
+    fn translate(self, offset: Coords) -> Translate<Self> {
+        Translate::new(self, offset)
+    }
+
+    fn rotate_y(self, angle: f32) -> RotateY<Self> {
+        RotateY::new(self, angle)
+    }
+}
+
+impl<T: Hit> Transformable for T {}

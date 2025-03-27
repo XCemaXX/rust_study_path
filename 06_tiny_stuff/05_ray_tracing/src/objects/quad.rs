@@ -67,8 +67,8 @@ impl hit::Hit for Quad {
         Some(rec)
     }
 
-    fn bounding_box(&self) -> Aabb {
-        self.bbox.clone()
+    fn bounding_box(&self) -> &Aabb {
+        &self.bbox
     }
 }
 

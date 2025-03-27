@@ -18,7 +18,7 @@ impl HitableList {
     }
 
     pub fn push(&mut self, object: impl Hit + 'static) {
-        let bbox = object.bounding_box();
+        let bbox = object.bounding_box().clone();
         self.objects.push(Box::new(object));
         self.bbox = Aabb::from_boxes(self.bbox.clone(), bbox);
     }
@@ -42,7 +42,7 @@ impl Hit for HitableList {
         hit_anything
     }
 
-    fn bounding_box(&self) -> Aabb {
-        self.bbox.clone()
+    fn bounding_box(&self) -> &Aabb {
+        &self.bbox
     }
 }

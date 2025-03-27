@@ -91,7 +91,7 @@ impl hit::Hit for Sphere {
         None
     }
 
-    fn bounding_box(&self) -> Aabb {
-        self.bbox.clone()
+    fn bounding_box(&self) -> &Aabb {
+        &self.bbox
     }
 }
