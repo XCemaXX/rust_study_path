@@ -1,21 +1,23 @@
 use std::ops::Range;
+use std::sync::Arc;
 
 use crate::Coords;
 use crate::hit::{self, Aabb, HitRecord};
-use crate::material::Material;
+use crate::material::{IntoSharedMaterial, Material};
 use crate::ray::Ray;
 
 use std::f32::consts::PI;
 
-pub struct Sphere<T: Material> {
+pub struct Sphere {
     center: Ray,
     radius: f32,
-    material: T,
+    material: Arc<dyn Material>,
     bbox: Aabb,
 }
 
-impl<T: Material> Sphere<T> {
-    pub fn new(static_center: Coords, radius: f32, material: T) -> Self {
+impl Sphere {
+    pub fn new<M: IntoSharedMaterial>(static_center: Coords, radius: f32, material: M) -> Self {
+        let material = material.into_arc();
         let radius = radius.max(0.0);
         let rvec = Coords::new(radius, radius, radius);
         Self {
@@ -26,7 +28,13 @@ impl<T: Material> Sphere<T> {
         }
     }
 
-    pub fn new_moving(center1: Coords, center2: Coords, radius: f32, material: T) -> Self {
+    pub fn new_moving<M: IntoSharedMaterial>(
+        center1: Coords,
+        center2: Coords,
+        radius: f32,
+        material: M,
+    ) -> Self {
+        let material = material.into_arc();
         let radius = radius.max(0.0);
         let center = Ray::new(center1, center2 - center1);
         let rvec = Coords::new(radius, radius, radius);
@@ -57,7 +65,7 @@ impl<T: Material> Sphere<T> {
     }
 }
 
-impl<T: Material> hit::Hit for Sphere<T> {
+impl hit::Hit for Sphere {
     fn hit(&self, r: &crate::ray::Ray, ray_t: Range<f32>) -> Option<hit::HitRecord> {
         let current_center = self.center.at(r.time());
         let oc = r.origin() - current_center;
@@ -72,7 +80,7 @@ impl<T: Material> hit::Hit for Sphere<T> {
                     let p = r.at(t);
                     let outward_normal = (p - current_center) / self.radius;
                     let (u, v) = Self::get_sphere_uv(outward_normal);
-                    let mut result = HitRecord::new(t, p, outward_normal, &self.material)
+                    let mut result = HitRecord::new(t, p, outward_normal, self.material.as_ref())
                         .set_face_normal(r, outward_normal);
                     result.u = u;
                     result.v = v;

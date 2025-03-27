@@ -17,9 +17,9 @@ impl HitableList {
         }
     }
 
-    pub fn push(&mut self, object: Box<dyn Hit>) {
+    pub fn push(&mut self, object: impl Hit + 'static) {
         let bbox = object.bounding_box();
-        self.objects.push(object);
+        self.objects.push(Box::new(object));
         self.bbox = Aabb::from_boxes(self.bbox.clone(), bbox);
     }
 

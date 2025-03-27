@@ -2,29 +2,25 @@ use std::sync::Arc;
 
 use crate::{
     Color,
-    texture::{SolidColor, Texture},
+    texture::{IntoSharedTexture, SolidColor, Texture},
 };
 
 use super::Material;
 
 pub struct DiffuseLight {
-    texture: Arc<Box<dyn Texture>>,
+    texture: Arc<dyn Texture>,
 }
 
 impl DiffuseLight {
     pub fn from_color(emit: Color) -> Self {
         Self {
-            texture: Arc::new(Box::new(SolidColor::new(emit))),
+            texture: Arc::new(SolidColor::new(emit)),
         }
     }
 
-    pub fn from_shared_texture(texture: Arc<Box<dyn Texture>>) -> Self {
-        Self { texture }
-    }
-
-    pub fn from_texture(texture: Box<dyn Texture>) -> Self {
+    pub fn from_texture<T: IntoSharedTexture>(texture: T) -> Self {
         Self {
-            texture: Arc::new(texture),
+            texture: texture.into_arc(),
         }
     }
 }

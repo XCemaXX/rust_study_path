@@ -1,24 +1,25 @@
 use std::ops::Range;
+use std::sync::Arc;
 
 use crate::Coords;
 use crate::hit::{self, Aabb, HitRecord};
-use crate::material::Material;
+use crate::material::{IntoSharedMaterial, Material};
 use crate::ray::Ray;
 
-
-pub struct Quad<T: Material> {
+pub struct Quad {
     q: Coords,
     u: Coords,
     v: Coords,
     w: Coords,
-    material: T,
+    material: Arc<dyn Material>,
     bbox: Aabb,
     normal: Coords,
     d: f32,
 }
 
-impl<T: Material> Quad<T> {
-    pub fn new(q: Coords, u: Coords, v: Coords, material: T) -> Self {
+impl Quad {
+    pub fn new<M: IntoSharedMaterial>(q: Coords, u: Coords, v: Coords, material: M) -> Self {
+        let material = material.into_arc();
         let n = u.cross(v);
         let normal = n.unit_vector();
         let d = normal.dot(q);
@@ -40,7 +41,7 @@ impl<T: Material> Quad<T> {
     }
 }
 
-impl<T: Material> hit::Hit for Quad<T> {
+impl hit::Hit for Quad {
     fn hit(&self, r: &Ray, ray_t: Range<f32>) -> Option<HitRecord> {
         let denom = self.normal.dot(r.direction());
 
@@ -59,7 +60,7 @@ impl<T: Material> hit::Hit for Quad<T> {
         if !is_interior(alpha, beta) {
             return None;
         }
-        let rec = HitRecord::new(t, intersection, self.normal, &self.material);
+        let rec = HitRecord::new(t, intersection, self.normal, self.material.as_ref());
         let mut rec = rec.set_face_normal(r, self.normal);
         rec.u = alpha;
         rec.v = beta;

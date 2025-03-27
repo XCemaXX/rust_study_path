@@ -1,4 +1,4 @@
-use crate::texture::{SolidColor, Texture};
+use crate::texture::{IntoSharedTexture, SolidColor, Texture};
 
 use super::*;
 use rand::{SeedableRng, rngs::SmallRng};
@@ -9,23 +9,19 @@ thread_local! {
 }
 
 pub struct Lambertian {
-    texture: Arc<Box<dyn Texture>>,
+    texture: Arc<dyn Texture>,
 }
 
 impl Lambertian {
     pub fn from_color(albedo: Color) -> Self {
         Self {
-            texture: Arc::new(Box::new(SolidColor::new(albedo))),
+            texture: Arc::new(SolidColor::new(albedo)),
         }
     }
 
-    pub fn from_shared_texture(texture: Arc<Box<dyn Texture>>) -> Self {
-        Self { texture }
-    }
-
-    pub fn from_texture(texture: Box<dyn Texture>) -> Self {
+    pub fn from_texture<T: IntoSharedTexture>(texture: T) -> Self {
         Self {
-            texture: Arc::new(texture),
+            texture: texture.into_arc(),
         }
     }
 }
