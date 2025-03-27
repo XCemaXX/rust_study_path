@@ -1,9 +1,5 @@
 use crate::texture::clamp;
-use crate::{
-    Coords, Ray,
-    color::Color,
-    hit::Hit,
-};
+use crate::{Coords, Ray, color::Color, hit::Hit};
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 use std::{sync::mpsc::channel, thread};
 
@@ -21,6 +17,7 @@ pub struct Builder {
     defocus_angle: f32,
     focus_dist: f32,
     cpu_num: usize,
+    background: Color,
 }
 
 impl Builder {
@@ -37,6 +34,7 @@ impl Builder {
             defocus_angle: 0.0,
             focus_dist: 10.0,
             cpu_num: std::thread::available_parallelism().map_or(1, |n| n.get()),
+            background: Color::new(0.7, 0.8, 1.0),
         }
     }
     pub fn aspect_ratio(mut self, x: f32) -> Self {
@@ -82,6 +80,10 @@ impl Builder {
     #[allow(dead_code)]
     pub fn cpu_num(mut self, x: usize) -> Self {
         self.cpu_num = x;
+        self
+    }
+    pub fn background(mut self, x: Color) -> Self {
+        self.background = x;
         self
     }
 
@@ -131,6 +133,7 @@ impl Builder {
             defocus_disk_v,
             self.defocus_angle,
             self.cpu_num,
+            self.background,
         )
     }
 }
@@ -154,6 +157,7 @@ pub struct Camera {
 
     defocus_angle: f32, // Variation angle of rays through each pixel
     cpu_num: usize,
+    background: Color, // Scene background color
 }
 
 fn random_in_unit_disk(rng: &mut impl Rng) -> Coords {
@@ -214,7 +218,7 @@ impl Camera {
     }
 
     pub fn render(&self, world: &dyn Hit) -> Vec<Color> {
-        let batch_size = self.image.height /self.cpu_num;
+        let batch_size = self.image.height / self.cpu_num;
 
         let (tx, rx) = channel();
         thread::scope(|s| {
@@ -236,10 +240,7 @@ impl Camera {
 
         let mut bathes = rx.iter().collect::<Vec<_>>();
         bathes.sort_by_key(|&(i, _)| i);
-        bathes
-            .into_iter()
-            .flat_map(|(_, batch)| batch)
-            .collect()
+        bathes.into_iter().flat_map(|(_, batch)| batch).collect()
     }
 
     fn render_rows(&self, world: &dyn Hit, rows: Range<usize>) -> Vec<Color> {
@@ -264,19 +265,21 @@ impl Camera {
         if depth == 0 {
             return Color::new(0.0, 0.0, 0.0);
         }
-        match world.hit(&r, 0.001..f32::MAX) {
-            Some(rec) => match rec.material.scatter(&r, &rec) {
-                Some((scattered, attenuation)) => {
-                    attenuation * self.ray_color(scattered, world, depth - 1)
-                }
-                None => Color::new(0.0, 0.0, 0.0),
-            },
-            None => {
-                let unit_direction = r.direction().unit_vector();
-                let a = 0.5 * (unit_direction.y() + 1.0);
-                (1.0 - a) * Color::new(1.0, 1.0, 1.0) + a * Color::new(0.5, 0.7, 1.0)
-            }
-        }
+        let rec = if let Some(rec) = world.hit(&r, 0.001..f32::MAX) {
+            rec
+        } else {
+            return self.background;
+        };
+
+        let color_from_emission = rec.material.emitted(rec.u, rec.v, rec.p);
+
+        rec.material
+            .scatter(&r, &rec)
+            .map(|(scattered, attenuation)| {
+                let color_from_scatter = attenuation * self.ray_color(scattered, world, depth - 1);
+                color_from_emission + color_from_scatter
+            })
+            .unwrap_or(color_from_emission)
     }
 
     fn new(
@@ -292,6 +295,7 @@ impl Camera {
         defocus_disk_v: Coords,
         defocus_angle: f32,
         cpu_num: usize,
+        background: Color,
     ) -> Self {
         Self {
             pixel_samples_scale,
@@ -306,6 +310,7 @@ impl Camera {
             defocus_disk_v,
             defocus_angle,
             cpu_num,
+            background,
         }
     }
 }

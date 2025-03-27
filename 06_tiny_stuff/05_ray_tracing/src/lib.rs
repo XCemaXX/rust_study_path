@@ -14,7 +14,7 @@ use camera::Camera;
 pub use color::Color;
 use coords::Coords;
 use hit::{BvhNode, HitableList};
-use material::{Dielectric, Lambertian, Metal};
+use material::{Dielectric, DiffuseLight, Lambertian, Metal};
 use objects::{Quad, Sphere};
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 use ray::Ray;
@@ -227,6 +227,110 @@ fn quads_scene() -> (HitableList, Camera) {
     (world, camera)
 }
 
+pub fn simple_light_scene() -> (HitableList, Camera) {
+    let mut world = HitableList::new();
+    let noise: Box<dyn Texture> = Box::new(NoiseTexture::new(4.0));
+    let noise = Arc::new(noise);
+    world.push(Box::new(Sphere::new(
+        Vec3::new(0.0, -1000.0, 0.0),
+        1000.0,
+        Lambertian::from_shared_texture(noise.clone()),
+    )));
+    world.push(Box::new(Sphere::new(
+        Vec3::new(0.0, 2.0, 0.0),
+        2.0,
+        Lambertian::from_shared_texture(noise),
+    )));
+
+    let light = Color::new(4.0, 4.0, 4.0);
+    world.push(Box::new(Sphere::new(
+        Coords::new(0.0, 7.0, 0.0),
+        2.0,
+        DiffuseLight::from_color(light),
+    )));
+    world.push(Box::new(Quad::new(
+        Coords::new(3.0, 1.0, -2.0),
+        Coords::new(2.0, 0.0, 0.0),
+        Coords::new(0.0, 2.0, 0.0),
+        DiffuseLight::from_color(light),
+    )));
+
+    let camera = Camera::builder()
+        .aspect_ratio(16.0 / 9.0)
+        .image_width(400)
+        .samples_per_pixel(100)
+        .max_depth(50)
+        .background(Color::new(0.0, 0.0, 0.0))
+        .vfov(20.0)
+        .lookfrom(Coords::new(26.0, 3.0, 6.0))
+        .lookat(Coords::new(0.0, 2.0, 0.0))
+        .vup(Coords::new(0.0, 1.0, 0.0))
+        .defocus_angle(0.0)
+        .build();
+
+    (world, camera)
+}
+
+pub fn cornell_box_scene() -> (HitableList, Camera) {
+    let mut world = HitableList::new();
+    let red =   Color::new(0.65, 0.05, 0.05);
+    let white = Color::new(0.73, 0.73, 0.73);
+    let green = Color::new(0.12, 0.45, 0.15);
+    let light = Color::new(15.0, 15.0, 15.0);
+
+    world.push(Box::new(Quad::new(
+        Coords::new(555.0, 0.0, 0.0),
+        Coords::new(0.0, 555.0, 0.0),
+        Coords::new(0.0, 0.0, 555.0),
+        Lambertian::from_color(green),
+    )));
+    world.push(Box::new(Quad::new(
+        Coords::new(0.0, 0.0, 0.0),
+        Coords::new(0.0, 555.0, 0.0),
+        Coords::new(0.0, 0.0, 555.0),
+        Lambertian::from_color(red),
+    )));
+    world.push(Box::new(Quad::new(
+        Coords::new(343.0, 554.0, 332.0),
+        Coords::new(-130.0, 0.0, 0.0),
+        Coords::new(0.0, 0.0, -105.0),
+        DiffuseLight::from_color(light),
+    )));
+    world.push(Box::new(Quad::new(
+        Coords::new(0.0, 0.0, 0.0),
+        Coords::new(555.0, 0.0, 0.0),
+        Coords::new(0.0, 0.0, 555.0),
+        Lambertian::from_color(white),
+    )));
+    world.push(Box::new(Quad::new(
+        Coords::new(555.0, 555.0, 555.0),
+        Coords::new(-555.0, 0.0, 0.0),
+        Coords::new(0.0, 0.0, -555.0),
+        Lambertian::from_color(white),
+    )));
+    world.push(Box::new(Quad::new(
+        Coords::new(0.0, 0.0, 555.0),
+        Coords::new(555.0, 0.0, 0.0),
+        Coords::new(0.0, 555.0, 0.0),
+        Lambertian::from_color(white),
+    )));
+
+    let camera = Camera::builder()
+        .aspect_ratio(1.0)
+        .image_width(400)
+        .samples_per_pixel(200)
+        .max_depth(50)
+        .background(Color::new(0.0, 0.0, 0.0))
+        .vfov(40.0)
+        .lookfrom(Coords::new(278.0, 278.0, -800.0))
+        .lookat(Coords::new(278.0, 278.0, 0.0))
+        .vup(Coords::new(0.0, 1.0, 0.0))
+        .defocus_angle(0.0)
+        .build();
+
+    (world, camera)
+}
+
 pub struct Image {
     pub pixels: Vec<Color>,
     pub width: u32,
@@ -242,7 +346,9 @@ pub fn render_world() -> Image {
         3 => checkered_spheres_scene(),
         4 => earth_scene(),
         5 => perlin_spheres_scene(),
-        _ => quads_scene(),
+        6 => quads_scene(),
+        7 => simple_light_scene(),
+        _ => cornell_box_scene(),
     };
 
     let world = BvhNode::from_list(world);
