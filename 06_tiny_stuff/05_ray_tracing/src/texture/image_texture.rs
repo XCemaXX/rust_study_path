@@ -19,15 +19,15 @@ impl Texture for ImageTexture {
     fn value(&self, u: f32, v: f32, _: crate::coords::Coords) -> Color {
         let height = self.pixels.len();
         if height == 0 {
-            return Color::new(0.0, 1.0, 1.0);
+            return Color::new(0., 1., 1.);
         }
         let width = self.pixels[0].len();
 
         let u = clamp(&(0.0..1.0), u);
-        let v = 1.0 - clamp(&(0.0..1.0), v);
+        let v = 1. - clamp(&(0.0..1.0), v);
 
-        let j = (u * width as f32).floor() as usize;
-        let i = (v * height as f32).floor() as usize;
+        let j = ((u * width as f32).floor() as usize).min(width);
+        let i = ((v * height as f32).floor() as usize).min(height);
         let pixel = self.pixels[i][j];
 
         pixel

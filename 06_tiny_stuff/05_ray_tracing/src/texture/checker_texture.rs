@@ -14,7 +14,7 @@ impl CheckerTexture {
     #[allow(dead_code)]
     pub fn from_textures(scale: f32, even: Arc<dyn Texture>, odd: Arc<dyn Texture>) -> Self {
         Self {
-            inv_scale: 1.0 / scale,
+            inv_scale: 1. / scale,
             even,
             odd,
         }
@@ -25,7 +25,7 @@ impl CheckerTexture {
         let c2 = SolidColor::new(c2);
 
         Self {
-            inv_scale: 1.0 / scale,
+            inv_scale: 1. / scale,
             even: Arc::new(c1),
             odd: Arc::new(c2),
         }

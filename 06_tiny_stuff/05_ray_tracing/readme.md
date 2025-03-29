@@ -1,6 +1,8 @@
-ref:
+# Reference
+## First part
 https://raytracing.github.io/books/RayTracingInOneWeekend.html
-https://raytracing.github.io
+## Second part
+https://raytracing.github.io/books/RayTracingTheNextWeek.html
 
-run:
+# How to run:
 cargo run --bin ray_tracing --release "$(pwd)/out.png"

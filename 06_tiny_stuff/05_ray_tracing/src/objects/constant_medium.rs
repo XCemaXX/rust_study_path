@@ -30,7 +30,7 @@ impl<H: Hit> ConstantMedium<H> {
         let phase_function = Isotropic::from_texture(texture).into_arc();
         Self {
             boundary,
-            neg_inc_density: -1.0 / density,
+            neg_inc_density: -1. / density,
             phase_function,
         }
     }
@@ -48,7 +48,7 @@ impl<T: Hit> Hit for ConstantMedium<T> {
             return None;
         }
 
-        rec1.t = rec1.t.max(0.0);
+        rec1.t = rec1.t.max(0.);
 
         let ray_length = r.direction().length();
         let distance_inside_boundary = (rec2.t - rec1.t) * ray_length;
@@ -62,7 +62,7 @@ impl<T: Hit> Hit for ConstantMedium<T> {
         let rec = HitRecord::new(
             rec_t,
             r.at(rec_t),
-            Coords::new(1.0, 0.0, 0.0),
+            Coords::new(1., 0., 0.),
             self.phase_function.as_ref(),
         );
         Some(rec)

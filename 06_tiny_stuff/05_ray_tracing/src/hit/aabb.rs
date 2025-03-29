@@ -111,7 +111,7 @@ impl Index<Axis> for Aabb {
 }
 
 fn expand(r: Range<f32>, delta: f32) -> Range<f32> {
-    let padding = delta / 2.0;
+    let padding = delta / 2.;
     (r.start - padding)..(r.end + padding)
 }
 

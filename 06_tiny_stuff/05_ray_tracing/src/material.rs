@@ -25,7 +25,7 @@ pub trait Material: Sync + Send {
 }
 
 fn reflect(v: Coords, n: Coords) -> Coords {
-    v - 2.0 * v.dot(n) * n
+    v - 2. * v.dot(n) * n
 }
 
 pub trait IntoSharedMaterial {

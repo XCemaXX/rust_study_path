@@ -31,7 +31,7 @@ impl<Tag> Vec3<Tag> {
 
     pub fn unit_vector(self) -> Self {
         let l = self.length();
-        assert_ne!(l, 0.0);
+        assert_ne!(l, 0.);
         self / l
     }
 
@@ -67,7 +67,7 @@ impl<Tag> Vec3<Tag> {
 
     pub fn sqrt_axis(self) -> Self {
         fn sqrt_pos(val: f32) -> f32 {
-            if val > 0.0 { f32::sqrt(val) } else { 0.0 }
+            if val > 0. { f32::sqrt(val) } else { 0. }
         }
 
         Self::new(sqrt_pos(self.0), sqrt_pos(self.1), sqrt_pos(self.2))

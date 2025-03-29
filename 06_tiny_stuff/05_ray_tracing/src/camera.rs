@@ -23,18 +23,18 @@ pub struct Builder {
 impl Builder {
     pub fn new() -> Self {
         Self {
-            aspect_ratio: 1.0,
+            aspect_ratio: 1.,
             image_width: 100,
             samples_per_pixel: 10,
             max_depth: 10,
-            vfov: 90.0,
-            lookfrom: Coords::new(0.0, 0.0, 0.0),
-            lookat: Coords::new(0.0, 0.0, -1.0),
-            vup: Coords::new(0.0, 1.0, 0.0),
-            defocus_angle: 0.0,
-            focus_dist: 10.0,
+            vfov: 90.,
+            lookfrom: Coords::new(0., 0., 0.),
+            lookat: Coords::new(0., 0., -1.),
+            vup: Coords::new(0., 1., 0.),
+            defocus_angle: 0.,
+            focus_dist: 10.,
             cpu_num: std::thread::available_parallelism().map_or(1, |n| n.get()),
-            background: Color::new(0.7, 0.8, 1.0),
+            background: Color::new(0.7, 0.8, 1.),
         }
     }
     pub fn aspect_ratio(mut self, x: f32) -> Self {
@@ -89,16 +89,16 @@ impl Builder {
 
     pub fn build(self) -> Camera {
         let image_height = self.image_width as f32 / self.aspect_ratio;
-        let image_height = if image_height < 1.0 {
+        let image_height = if image_height < 1. {
             1
         } else {
             image_height as usize
         };
-        let pixel_samples_scale = 1.0 / self.samples_per_pixel as f32;
+        let pixel_samples_scale = 1. / self.samples_per_pixel as f32;
         let center = self.lookfrom;
         let theta = degrees_to_radians(self.vfov);
-        let h = f32::tan(theta / 2.0);
-        let viewport_height = 2.0 * h * self.focus_dist;
+        let h = f32::tan(theta / 2.);
+        let viewport_height = 2. * h * self.focus_dist;
         let viewport_width = viewport_height * (self.image_width as f32 / image_height as f32);
         let w = (self.lookfrom - self.lookat).unit_vector();
         let u = self.vup.cross(w).unit_vector();
@@ -110,11 +110,11 @@ impl Builder {
         let pixel_delta_v = viewport_v / image_height as f32;
 
         let viewport_upper_left =
-            center - (self.focus_dist * w) - viewport_u / 2.0 - viewport_v / 2.0;
+            center - (self.focus_dist * w) - viewport_u / 2. - viewport_v / 2.;
         let pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
 
         let defocus_radius =
-            self.focus_dist * f32::tan(degrees_to_radians(self.defocus_angle / 2.0));
+            self.focus_dist * f32::tan(degrees_to_radians(self.defocus_angle / 2.));
         let defocus_disk_u = u * defocus_radius;
         let defocus_disk_v = v * defocus_radius;
         Camera::new(
@@ -165,16 +165,16 @@ fn random_in_unit_disk(rng: &mut impl Rng) -> Coords {
         let p = Coords::new(
             rng.random_range(-1.0..1.0),
             rng.random_range(-1.0..1.0),
-            0.0,
+            0.,
         );
-        if p.length_squared() < 1.0 {
+        if p.length_squared() < 1. {
             break p;
         }
     }
 }
 
 fn degrees_to_radians(degrees: f32) -> f32 {
-    degrees * PI / 180.0
+    degrees * PI / 180.
 }
 
 impl Camera {
@@ -188,7 +188,7 @@ impl Camera {
     }
 
     fn sample_square(&self, rng: &mut impl Rng) -> Coords {
-        Coords::new(rng.random::<f32>() - 0.5, rng.random::<f32>() - 0.5, 0.0)
+        Coords::new(rng.random::<f32>() - 0.5, rng.random::<f32>() - 0.5, 0.)
     }
 
     fn get_ray(&self, i: usize, j: usize, rng: &mut impl Rng) -> Ray {
@@ -197,7 +197,7 @@ impl Camera {
             + ((i as f32 + offset.x()) * self.pixel_delta_u)
             + ((j as f32 + offset.y()) * self.pixel_delta_v);
 
-        let ray_origin = if self.defocus_angle <= 0.0 {
+        let ray_origin = if self.defocus_angle <= 0. {
             self.center
         } else {
             self.defocus_disk_sample(rng)
@@ -211,9 +211,9 @@ impl Camera {
         let pixel_color = pixel_color.sqrt_axis();
         let intensity = &(0.0..0.999);
         Color::new(
-            256.0 * clamp(intensity, pixel_color.r()),
-            256.0 * clamp(intensity, pixel_color.g()),
-            256.0 * clamp(intensity, pixel_color.b()),
+            256. * clamp(intensity, pixel_color.r()),
+            256. * clamp(intensity, pixel_color.g()),
+            256. * clamp(intensity, pixel_color.b()),
         )
     }
 
@@ -263,7 +263,7 @@ impl Camera {
 
     fn ray_color(&self, r: Ray, world: &dyn Hit, depth: usize) -> Color {
         if depth == 0 {
-            return Color::new(0.0, 0.0, 0.0);
+            return Color::new(0., 0., 0.);
         }
         let rec = if let Some(rec) = world.hit(&r, 0.001..f32::MAX) {
             rec

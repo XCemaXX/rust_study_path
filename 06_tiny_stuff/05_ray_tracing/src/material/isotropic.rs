@@ -21,6 +21,7 @@ pub struct Isotropic {
 }
 
 impl Isotropic {
+    #[allow(dead_code)]
     pub fn from_color(albedo: Color) -> Self {
         Self::from_texture(SolidColor::new(albedo))
     }

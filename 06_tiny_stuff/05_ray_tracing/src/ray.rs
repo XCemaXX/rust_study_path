@@ -9,7 +9,7 @@ pub struct Ray {
 
 impl Ray {
     pub fn new(a: Coords, b: Coords) -> Self {
-        Self::new_timed(a, b, 0.0)
+        Self::new_timed(a, b, 0.)
     }
 
     pub fn new_timed(a: Coords, b: Coords, time: f32) -> Self {

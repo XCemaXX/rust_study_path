@@ -29,9 +29,9 @@ pub fn load_png(png_data: &[u8]) -> Result<Vec<Vec<Color>>, Box<dyn std::error::
             };
             process_pixels(chunk_size, |chunk| {
                 Color::new(
-                    chunk[0] as f32 / 255.0,
-                    chunk[1] as f32 / 255.0,
-                    chunk[2] as f32 / 255.0,
+                    chunk[0] as f32 / 255.,
+                    chunk[1] as f32 / 255.,
+                    chunk[2] as f32 / 255.,
                 )
             })
         }
@@ -42,7 +42,7 @@ pub fn load_png(png_data: &[u8]) -> Result<Vec<Vec<Color>>, Box<dyn std::error::
                 2
             };
             process_pixels(chunk_size, |chunk| {
-                let v = chunk[0] as f32 / 255.0;
+                let v = chunk[0] as f32 / 255.;
                 Color::new(v, v, v)
             })
         }

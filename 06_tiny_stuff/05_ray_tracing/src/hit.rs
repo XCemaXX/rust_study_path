@@ -30,7 +30,7 @@ impl HitRecord<'_> {
         // Sets the hit record normal vector.
         // NOTE: the parameter `outward_normal` is assumed to have unit length.
         let mut hit = self;
-        hit.front_face = r.direction().dot(outward_normal) < 0.0;
+        hit.front_face = r.direction().dot(outward_normal) < 0.;
         hit.normal = if hit.front_face {
             outward_normal
         } else {
@@ -45,8 +45,8 @@ impl HitRecord<'_> {
             normal,
             material,
             t,
-            u: 0.0,
-            v: 0.0,
+            u: 0.,
+            v: 0.,
             front_face: true,
         }
     }

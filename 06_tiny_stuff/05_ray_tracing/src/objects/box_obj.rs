@@ -18,9 +18,9 @@ impl BoxObj {
         let min = Coords::new(a.x().min(b.x()), a.y().min(b.y()), a.z().min(b.z()));
         let max = Coords::new(a.x().max(b.x()), a.y().max(b.y()), a.z().max(b.z()));
 
-        let dx = Coords::new(max.x() - min.x(), 0.0, 0.0);
-        let dy = Coords::new(0.0, max.y() - min.y(), 0.0);
-        let dz = Coords::new(0.0, 0.0, max.z() - min.z());
+        let dx = Coords::new(max.x() - min.x(), 0., 0.);
+        let dy = Coords::new(0., max.y() - min.y(), 0.);
+        let dz = Coords::new(0., 0., max.z() - min.z());
 
         sides.push(Quad::new(Coords::new(min.x(), min.y(), max.z()), dx, dy, material.clone()));
         sides.push(Quad::new(Coords::new(max.x(), min.y(), max.z()), -dz,  dy, material.clone()));
