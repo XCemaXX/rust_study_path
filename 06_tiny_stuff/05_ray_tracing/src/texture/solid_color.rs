@@ -17,3 +17,9 @@ impl Texture for SolidColor {
         self.albedo
     }
 }
+
+impl From<Color> for SolidColor {
+    fn from(color: Color) -> Self {
+        SolidColor::new(color)
+    }
+}

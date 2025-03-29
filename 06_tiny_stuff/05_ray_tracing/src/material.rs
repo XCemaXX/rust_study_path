@@ -2,6 +2,7 @@ mod dielectric;
 mod diffuse_ligth;
 mod lambertian;
 mod metal;
+mod isotropic;
 
 use std::{cell::RefCell, sync::Arc};
 
@@ -10,6 +11,7 @@ pub use dielectric::Dielectric;
 pub use diffuse_ligth::DiffuseLight;
 pub use lambertian::Lambertian;
 pub use metal::Metal;
+pub use isotropic::Isotropic;
 use rand::Rng;
 
 pub trait Material: Sync + Send {

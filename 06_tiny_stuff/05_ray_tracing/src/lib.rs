@@ -15,7 +15,7 @@ pub use color::Color;
 use coords::Coords;
 use hit::{BvhNode, HitableList, Transformable};
 use material::{Dielectric, DiffuseLight, Lambertian, Material, Metal};
-use objects::{BoxObj, Quad, Sphere};
+use objects::{BoxObj, ConstantMedium, Quad, Sphere};
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 use ray::Ray;
 use texture::{CheckerTexture, ImageTexture, NoiseTexture, Texture};
@@ -37,7 +37,7 @@ fn camera_one() -> Camera {
         .build()
 }
 
-pub fn simple_scene() -> (HitableList, Camera) {
+fn simple_scene() -> (HitableList, Camera) {
     let mut world = HitableList::new();
     world.push(Sphere::new(
         Vec3::new(0.0, 0.0, -1.2),
@@ -64,7 +64,7 @@ pub fn simple_scene() -> (HitableList, Camera) {
     (world, camera_one())
 }
 
-pub fn bouncing_spheres_scene() -> (HitableList, Camera) {
+fn bouncing_spheres_scene() -> (HitableList, Camera) {
     let mut rng = SmallRng::from_rng(&mut rand::rng());
     let mut world = HitableList::new();
 
@@ -111,7 +111,7 @@ pub fn bouncing_spheres_scene() -> (HitableList, Camera) {
     (world, camera_one())
 }
 
-pub fn checkered_spheres_scene() -> (HitableList, Camera) {
+fn checkered_spheres_scene() -> (HitableList, Camera) {
     let mut world = HitableList::new();
 
     let checker: Arc<dyn Texture> = Arc::new(CheckerTexture::from_colors(
@@ -132,7 +132,7 @@ pub fn checkered_spheres_scene() -> (HitableList, Camera) {
     (world, camera_one())
 }
 
-pub fn earth_scene() -> (HitableList, Camera) {
+fn earth_scene() -> (HitableList, Camera) {
     let mut world = HitableList::new();
     const EARTH_TEXTURE_RAW: &'static [u8] = include_bytes!("../assets/earthmap.png");
     let earth = Lambertian::from_texture(ImageTexture::from_png(EARTH_TEXTURE_RAW));
@@ -141,7 +141,7 @@ pub fn earth_scene() -> (HitableList, Camera) {
     (world, camera_one())
 }
 
-pub fn perlin_spheres_scene() -> (HitableList, Camera) {
+fn perlin_spheres_scene() -> (HitableList, Camera) {
     let mut world = HitableList::new();
     let noise: Arc<dyn Material> = Arc::new(Lambertian::from_texture(NoiseTexture::new(4.0)));
     world.push(Sphere::new(
@@ -208,7 +208,7 @@ fn quads_scene() -> (HitableList, Camera) {
     (world, camera)
 }
 
-pub fn simple_light_scene() -> (HitableList, Camera) {
+fn simple_light_scene() -> (HitableList, Camera) {
     let mut world = HitableList::new();
     let noise: Arc<dyn Material> = Arc::new(Lambertian::from_texture(NoiseTexture::new(4.0)));
     world.push(Sphere::new(
@@ -247,7 +247,22 @@ pub fn simple_light_scene() -> (HitableList, Camera) {
     (world, camera)
 }
 
-pub fn cornell_box_scene() -> (HitableList, Camera) {
+fn camera_cornel() -> Camera {
+    Camera::builder()
+        .aspect_ratio(1.0)
+        .image_width(300)
+        .samples_per_pixel(600)
+        .max_depth(80)
+        .background(Color::new(0.0, 0.0, 0.0))
+        .vfov(40.0)
+        .lookfrom(Coords::new(278.0, 278.0, -800.0))
+        .lookat(Coords::new(278.0, 278.0, 0.0))
+        .vup(Coords::new(0.0, 1.0, 0.0))
+        .defocus_angle(0.0)
+        .build()
+}
+
+fn cornell_box_scene() -> (HitableList, Camera) {
     let mut world = HitableList::new();
     let red = Color::new(0.65, 0.05, 0.05);
     let white: Arc<dyn Material> = Arc::new(Lambertian::from_color(Color::new(0.73, 0.73, 0.73)));
@@ -308,20 +323,74 @@ pub fn cornell_box_scene() -> (HitableList, Camera) {
     .translate(Coords::new(130.0, 0.0, 65.0));
     world.push(box2);
 
-    let camera = Camera::builder()
-        .aspect_ratio(1.0)
-        .image_width(400)
-        .samples_per_pixel(200)
-        .max_depth(50)
-        .background(Color::new(0.0, 0.0, 0.0))
-        .vfov(40.0)
-        .lookfrom(Coords::new(278.0, 278.0, -800.0))
-        .lookat(Coords::new(278.0, 278.0, 0.0))
-        .vup(Coords::new(0.0, 1.0, 0.0))
-        .defocus_angle(0.0)
-        .build();
+    (world, camera_cornel())
+}
 
-    (world, camera)
+fn cornell_smoke_scene() -> (HitableList, Camera) {
+    let mut world = HitableList::new();
+    let red = Color::new(0.65, 0.05, 0.05);
+    let white: Arc<dyn Material> = Arc::new(Lambertian::from_color(Color::new(0.73, 0.73, 0.73)));
+    let green = Lambertian::from_color(Color::new(0.12, 0.45, 0.15));
+    let light = Color::new(15.0, 15.0, 15.0);
+
+    world.push(Quad::new(
+        Coords::new(555.0, 0.0, 0.0),
+        Coords::new(0.0, 555.0, 0.0),
+        Coords::new(0.0, 0.0, 555.0),
+        green,
+    ));
+    world.push(Quad::new(
+        Coords::new(0.0, 0.0, 0.0),
+        Coords::new(0.0, 555.0, 0.0),
+        Coords::new(0.0, 0.0, 555.0),
+        Lambertian::from_color(red),
+    ));
+    world.push(Quad::new(
+        Coords::new(343.0, 554.0, 332.0),
+        Coords::new(-130.0, 0.0, 0.0),
+        Coords::new(0.0, 0.0, -105.0),
+        DiffuseLight::from_color(light),
+    ));
+    world.push(Quad::new(
+        Coords::new(0.0, 0.0, 0.0),
+        Coords::new(555.0, 0.0, 0.0),
+        Coords::new(0.0, 0.0, 555.0),
+        white.clone(),
+    ));
+    world.push(Quad::new(
+        Coords::new(555.0, 555.0, 555.0),
+        Coords::new(-555.0, 0.0, 0.0),
+        Coords::new(0.0, 0.0, -555.0),
+        white.clone(),
+    ));
+    world.push(Quad::new(
+        Coords::new(0.0, 0.0, 555.0),
+        Coords::new(555.0, 0.0, 0.0),
+        Coords::new(0.0, 555.0, 0.0),
+        white.clone(),
+    ));
+
+    let box1 = BoxObj::new(
+        Coords::new(0.0, 0.0, 0.0),
+        Coords::new(165.0, 330.0, 165.0),
+        white.clone(),
+    )
+    .rotate_y(15.0)
+    .translate(Coords::new(265.0, 0.0, 295.0));
+    let box2 = BoxObj::new(
+        Coords::new(0.0, 0.0, 0.0),
+        Coords::new(165.0, 165.0, 165.0),
+        white.clone(),
+    )
+    .rotate_y(-18.0)
+    .translate(Coords::new(130.0, 0.0, 65.0));
+
+    let smoked_black_box = ConstantMedium::from_color(box1, 0.01, Color::new(0.0, 0.0, 0.0));
+    let smoked_noisy_box = ConstantMedium::from_texture(box2, 0.01, NoiseTexture::new(0.2));
+    world.push(smoked_black_box);
+    world.push(smoked_noisy_box);
+
+    (world, camera_cornel())
 }
 
 pub struct Image {
@@ -341,7 +410,8 @@ pub fn render_world() -> Image {
         5 => perlin_spheres_scene(),
         6 => quads_scene(),
         7 => simple_light_scene(),
-        _ => cornell_box_scene(),
+        8 => cornell_box_scene(),
+        _ => cornell_smoke_scene(),
     };
 
     let world = BvhNode::from_list(world);
