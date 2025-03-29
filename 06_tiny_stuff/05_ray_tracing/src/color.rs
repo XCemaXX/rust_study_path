@@ -2,7 +2,7 @@ use crate::vec3::Vec3;
 
 pub type Color = Vec3<ColorTag>;
 
-#[derive(Default)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct ColorTag;
 
 impl Color {
