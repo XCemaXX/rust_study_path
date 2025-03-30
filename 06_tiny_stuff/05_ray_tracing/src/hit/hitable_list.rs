@@ -26,12 +26,6 @@ impl HitableList {
     pub fn take_objects(self) -> Vec<Box<dyn Hit>> {
         self.objects
     }
-
-    fn push_boxed(&mut self, object: Box<dyn Hit>) {
-        let bbox = object.bounding_box().clone();
-        self.objects.push(object);
-        self.bbox = Aabb::from_boxes(self.bbox.clone(), bbox);
-    }
 }
 
 impl Hit for HitableList {
@@ -55,10 +49,13 @@ impl Hit for HitableList {
 
 impl FromIterator<Box<dyn Hit>> for HitableList {
     fn from_iter<T: IntoIterator<Item = Box<dyn Hit>>>(iter: T) -> Self {
-        let mut list = HitableList::new();
-        for object in iter {
-            list.push_boxed(object);
+        let objects: Vec<Box<dyn Hit>> = iter.into_iter().collect();
+        let bbox = objects.iter().fold(Aabb::empty(), |acc, object| {
+            Aabb::from_boxes(acc, object.bounding_box().clone())
+        });
+        Self {
+            objects,
+            bbox
         }
-        list
     }
 }

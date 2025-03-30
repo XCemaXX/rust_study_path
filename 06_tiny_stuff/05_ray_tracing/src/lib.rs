@@ -27,8 +27,7 @@ const EARTH_TEXTURE_RAW: &'static [u8] = include_bytes!("../assets/earthmap.png"
 fn camera_one() -> Camera {
     Camera::builder()
         .aspect_ratio(16. / 9.)
-        .image_width(400)
-        //.image_width(800)
+        .image_width(800)
         .samples_per_pixel(100)
         .max_depth(50)
         .vfov(20.)
@@ -256,7 +255,7 @@ fn camera_cornel() -> Camera {
 
 fn cornell_box_scene() -> (HitableList, Camera) {
     let mut world = HitableList::new();
-    let red = Color::new(0.65, 0.5, 0.5);
+    let red = Color::new(0.65, 0.05, 0.05);
     let white: Arc<dyn Material> = Arc::new(Lambertian::from_color(Color::new(0.73, 0.73, 0.73)));
     let green = Lambertian::from_color(Color::new(0.12, 0.45, 0.15));
     let light = Color::new(15., 15., 15.);
@@ -320,7 +319,7 @@ fn cornell_box_scene() -> (HitableList, Camera) {
 
 fn cornell_smoke_scene() -> (HitableList, Camera) {
     let mut world = HitableList::new();
-    let red = Color::new(0.65, 0.5, 0.5);
+    let red = Color::new(0.65, 0.05, 0.05);
     let white: Arc<dyn Material> = Arc::new(Lambertian::from_color(Color::new(0.73, 0.73, 0.73)));
     let green = Lambertian::from_color(Color::new(0.12, 0.45, 0.15));
     let light = Color::new(15., 15., 15.);
@@ -377,8 +376,8 @@ fn cornell_smoke_scene() -> (HitableList, Camera) {
     .rotate_y(-18.)
     .translate(Coords::new(130., 0., 65.));
 
-    let smoked_black_box = ConstantMedium::from_color(box1, 0.1, Color::new(0., 0., 0.));
-    let smoked_noisy_box = ConstantMedium::from_texture(box2, 0.1, NoiseTexture::new(0.2));
+    let smoked_black_box = ConstantMedium::from_color(box1, 0.01, Color::new(0., 0., 0.));
+    let smoked_noisy_box = ConstantMedium::from_texture(box2, 0.01, NoiseTexture::new(0.2));
     world.push(smoked_black_box);
     world.push(smoked_noisy_box);
 
@@ -390,20 +389,20 @@ fn final_scene(
     samples_per_pixel: usize,
     max_depth: usize,
 ) -> (HitableList, Camera) {
-    let mut ground_boxes = HitableList::new();
     let mut rng = SmallRng::from_rng(&mut rand::rng());
 
     let ground: Arc<dyn Material> = Arc::new(Lambertian::from_color(Color::new(0.48, 0.83, 0.53)));
 
     let boxes_per_side = 20;
-    for i in 0..boxes_per_side {
-        for j in 0..boxes_per_side {
+    let ground_boxes = (0..boxes_per_side)
+        .flat_map(|i| (0..boxes_per_side).map(move |j| (i, j)))
+        .map(|(i, j)| {
             let w = 100.;
             let a = Coords::new(-1000. + i as f32 * w, 0., -1000. + j as f32 * w);
             let b = Coords::new(a.x() + w, rng.random_range(1.0..101.), a.z() + w);
-            ground_boxes.push(BoxObj::new(a, b, ground.clone()));
-        }
-    }
+            Box::new(BoxObj::new(a, b, ground.clone())) as Box<dyn Hit>
+        })
+        .collect::<HitableList>();
 
     let mut world = HitableList::new();
     world.push(BvhNode::from_list(ground_boxes));
@@ -492,7 +491,6 @@ pub struct Image {
 pub fn render_world() -> Image {
     let i = 100;
     let (world, camera) = match i {
-        0 => simple_scene(),
         1 => simple_scene(),
         2 => bouncing_spheres_scene(),
         3 => checkered_spheres_scene(),
