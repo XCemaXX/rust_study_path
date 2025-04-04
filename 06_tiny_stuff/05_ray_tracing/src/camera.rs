@@ -292,11 +292,15 @@ impl Camera {
             }
         };
 
-        let light = HitablePdf::new(world.get_lights(), rec.p);
-        let p = MixturePdf::new(&light, pdf.as_ref());
-
-        let scattered = Ray::new_timed(rec.p, p.generate(), r.time());
-        let pdf_value = p.value(scattered.direction());
+        let lights = world.get_lights();
+        let (scattered, pdf_value) = if lights.is_empty() {
+            let p = pdf.as_ref();
+            compute_pdf(p, rec.p, &r)
+        } else {
+            let light = HitablePdf::new(world.get_lights(), rec.p);
+            let p = MixturePdf::new(&light, pdf.as_ref());
+            compute_pdf(&p, rec.p, &r)
+        };
 
         let scattering_pdf = rec.material.scattering_pdf(&r, &rec, &scattered);
 
@@ -341,4 +345,10 @@ impl Camera {
             background,
         }
     }
+}
+
+fn compute_pdf<T: Pdf + ?Sized>(p: &T, rec_p: Coords, r: &Ray) -> (Ray, f32) {
+    let scattered = Ray::new_timed(rec_p, p.generate(), r.time());
+    let pdf_value = p.value(scattered.direction());
+    (scattered, pdf_value)
 }

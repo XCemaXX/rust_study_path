@@ -24,8 +24,10 @@ impl World {
         self.objects.push(object);
     }
 
-    pub fn push_light(&mut self, light: impl PdfWithOrigin + Hit + 'static) {
+    pub fn push_light(&mut self, light: impl PdfWithOrigin + Hit + Clone + 'static) {
+        let o = light.clone();
         self.lights.push(light);
+        self.objects.push(o);
     }
 
     pub fn get_lights(&self) -> &HitableList<dyn PdfWithOrigin> {

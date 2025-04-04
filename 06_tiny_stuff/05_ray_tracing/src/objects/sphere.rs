@@ -18,11 +18,13 @@ thread_local! {
     static SPHERE_RNG: RefCell<SmallRng> = RefCell::new(SmallRng::from_rng(&mut rand::rng()));
 }
 
+#[derive(Clone)]
 pub struct Sphere {
     center: Ray,
     radius: f32,
     material: Arc<dyn Material>,
     bbox: Aabb,
+    is_moving: bool
 }
 
 impl Sphere {
@@ -35,6 +37,7 @@ impl Sphere {
             radius,
             material,
             bbox: Aabb::from_points(static_center - rvec, static_center + rvec),
+            is_moving: false
         }
     }
 
@@ -55,6 +58,7 @@ impl Sphere {
             radius,
             material,
             bbox: Aabb::from_boxes(box1, box2),
+            is_moving: true
         }
     }
 
@@ -108,7 +112,7 @@ impl hit::Hit for Sphere {
 
 impl PdfWithOrigin for Sphere {
     fn pdf_value(&self, origin: Coords, direction: Coords) -> f32 {
-        // This method only works for stationary spheres.
+        assert!(!self.is_moving);
         let ray = Ray::new(origin, direction);
         let Some(_) = self.hit(&ray, 0.001..f32::MAX) else {
             return 0.0;

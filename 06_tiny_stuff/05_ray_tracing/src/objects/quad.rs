@@ -15,6 +15,7 @@ thread_local! {
     static QUAD_RNG: RefCell<SmallRng> = RefCell::new(SmallRng::from_rng(&mut rand::rng()));
 }
 
+#[derive(Clone)]
 pub struct Quad {
     q: Coords,
     u: Coords,

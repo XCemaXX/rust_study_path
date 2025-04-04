@@ -57,7 +57,3 @@ impl<T: Material + 'static> IntoSharedMaterial for T {
         Arc::new(self)
     }
 }
-
-pub struct EmptyMaterial {}
-
-impl Material for EmptyMaterial {}

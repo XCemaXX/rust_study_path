@@ -22,6 +22,10 @@ impl<T: ?Sized> HitableList<T> {
             bbox: Aabb::empty(),
         }
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.objects.len() == 0
+    }
 }
 
 impl HitableList<dyn Hit> {
@@ -75,6 +79,7 @@ impl PdfWithOrigin for HitableList<dyn PdfWithOrigin> {
     }
 
     fn random(&self, origin: Coords) -> Coords {
+        assert!(self.objects.len() > 0);
         HITABBLE_LIST_RNG.with(|rng| {
             let i = rng.borrow_mut().random_range(0..self.objects.len());
             self.objects[i].random(origin)

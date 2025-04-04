@@ -18,7 +18,7 @@ use camera::Camera;
 pub use color::Color;
 use coords::Coords;
 use hit::{BvhNode, Hit, Transformable};
-use material::{Dielectric, DiffuseLight, EmptyMaterial, Lambertian, Material, Metal};
+use material::{Dielectric, DiffuseLight, Lambertian, Material, Metal};
 use objects::{BoxObj, ConstantMedium, Quad, Sphere};
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 use ray::Ray;
@@ -214,12 +214,12 @@ fn simple_light_scene() -> (World, Camera) {
     world.push(Sphere::new(Vec3::new(0., 2., 0.), 2., noise));
 
     let light = Color::new(4., 4., 4.);
-    world.push(Sphere::new(
+    world.push_light(Sphere::new(
         Coords::new(0., 7., 0.),
         2.,
         DiffuseLight::from_color(light),
     ));
-    world.push(Quad::new(
+    world.push_light(Quad::new(
         Coords::new(3., 1., -2.),
         Coords::new(2., 0., 0.),
         Coords::new(0., 2., 0.),
@@ -276,17 +276,11 @@ fn cornell_box_scene() -> (World, Camera) {
         Coords::new(0., 0., 555.),
         Lambertian::from_color(red),
     ));
-    world.push(Quad::new(
-        Coords::new(343., 554., 332.),
-        Coords::new(-130., 0., 0.),
-        Coords::new(0., 0., -105.),
-        DiffuseLight::from_color(light),
-    ));
     world.push_light(Quad::new(
         Coords::new(343., 554., 332.),
         Coords::new(-130., 0., 0.),
         Coords::new(0., 0., -105.),
-        EmptyMaterial {},
+        DiffuseLight::from_color(light),
     ));
     world.push(Quad::new(
         Coords::new(0., 0., 0.),
@@ -346,17 +340,11 @@ fn cornell_plus_box_scene() -> (World, Camera) {
         Coords::new(0., 0., 555.),
         Lambertian::from_color(red),
     ));
-    world.push(Quad::new(
-        Coords::new(343., 554., 332.),
-        Coords::new(-130., 0., 0.),
-        Coords::new(0., 0., -105.),
-        DiffuseLight::from_color(light),
-    ));
     world.push_light(Quad::new(
         Coords::new(343., 554., 332.),
         Coords::new(-130., 0., 0.),
         Coords::new(0., 0., -105.),
-        EmptyMaterial {},
+        DiffuseLight::from_color(light),
     ));
     world.push(Quad::new(
         Coords::new(0., 0., 0.),
@@ -389,12 +377,7 @@ fn cornell_plus_box_scene() -> (World, Camera) {
 
     let glass = Dielectric::new(1.5);
     let sphere = Sphere::new(Coords::new(190., 90., 190.), 90., glass);
-    world.push(sphere);
-    world.push_light(Sphere::new(
-        Coords::new(190., 90., 190.),
-        90.,
-        EmptyMaterial {},
-    ));
+    world.push_light(sphere);
 
     (world, camera_cornel())
 }
@@ -418,17 +401,11 @@ fn cornell_smoke_scene() -> (World, Camera) {
         Coords::new(0., 0., 555.),
         Lambertian::from_color(red),
     ));
-    world.push(Quad::new(
-        Coords::new(343., 554., 332.),
-        Coords::new(-130., 0., 0.),
-        Coords::new(0., 0., -105.),
-        DiffuseLight::from_color(light),
-    ));
     world.push_light(Quad::new(
         Coords::new(343., 554., 332.),
         Coords::new(-130., 0., 0.),
         Coords::new(0., 0., -105.),
-        EmptyMaterial {},
+        DiffuseLight::from_color(light),
     ));
     world.push(Quad::new(
         Coords::new(0., 0., 0.),
@@ -496,7 +473,7 @@ fn final_scene(
     world.push(BvhNode::from_list(ground_boxes));
 
     let light: DiffuseLight = DiffuseLight::from_color(Color::new(7., 7., 7.));
-    world.push(Quad::new(
+    world.push_light(Quad::new(
         Coords::new(123., 554., 147.),
         Coords::new(300., 0., 0.),
         Coords::new(0., 0., 265.),
@@ -577,7 +554,7 @@ pub struct Image {
 }
 
 pub fn render_world() -> Image {
-    let i = 9;
+    let i = 100;
     let (world, camera) = match i {
         1 => simple_scene(),
         2 => bouncing_spheres_scene(),

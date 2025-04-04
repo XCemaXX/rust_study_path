@@ -1,7 +1,7 @@
 use crate::{
     coords::Coords,
     hit::{Aabb, Hit, HitRecord, HitableList},
-    material::IntoSharedMaterial, pdf::PdfWithOrigin,
+    material::IntoSharedMaterial,
 };
 
 use super::Quad;
@@ -40,15 +40,5 @@ impl Hit for BoxObj {
 
     fn bounding_box(&self) -> &Aabb {
         self.sides.bounding_box()
-    }
-}
-
-impl PdfWithOrigin for BoxObj {
-    fn pdf_value(&self, origin: Coords, direction: Coords) -> f32 {
-        todo!()
-    }
-    
-    fn random(&self, origin: Coords) -> Coords {
-        todo!()
     }
 }
