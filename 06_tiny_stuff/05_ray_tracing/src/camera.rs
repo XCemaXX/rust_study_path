@@ -1,5 +1,6 @@
 use crate::texture::clamp;
 use crate::{Coords, Ray, color::Color, hit::Hit};
+use itertools::iproduct;
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 use std::{sync::mpsc::channel, thread};
 
@@ -94,7 +95,6 @@ impl Builder {
         } else {
             image_height as usize
         };
-        let pixel_samples_scale = 1. / self.samples_per_pixel as f32;
         let center = self.lookfrom;
         let theta = degrees_to_radians(self.vfov);
         let h = f32::tan(theta / 2.);
@@ -118,7 +118,6 @@ impl Builder {
         let defocus_disk_u = u * defocus_radius;
         let defocus_disk_v = v * defocus_radius;
         Camera::new(
-            pixel_samples_scale,
             pixel_delta_u,
             pixel_delta_v,
             pixel00_loc,
@@ -150,7 +149,8 @@ pub struct Camera {
     pixel00_loc: Coords,      // Location of pixel 0, 0
     center: Coords,           // Camera center
     pub image: Image,
-    samples_per_pixel: usize,
+    sqrt_spp: usize,     // Square root of number of samples per pixel
+    recip_sqrt_spp: f32, // 1 / sqrt_spp
     max_depth: usize,
     defocus_disk_u: Coords, // Defocus disk horizontal radius
     defocus_disk_v: Coords, // Defocus disk vertical radius
@@ -162,11 +162,7 @@ pub struct Camera {
 
 fn random_in_unit_disk(rng: &mut impl Rng) -> Coords {
     loop {
-        let p = Coords::new(
-            rng.random_range(-1.0..1.0),
-            rng.random_range(-1.0..1.0),
-            0.,
-        );
+        let p = Coords::new(rng.random_range(-1.0..1.0), rng.random_range(-1.0..1.0), 0.);
         if p.length_squared() < 1. {
             break p;
         }
@@ -187,12 +183,20 @@ impl Camera {
         return self.center + (p.x() * self.defocus_disk_u) + (p.y() * self.defocus_disk_v);
     }
 
-    fn sample_square(&self, rng: &mut impl Rng) -> Coords {
-        Coords::new(rng.random::<f32>() - 0.5, rng.random::<f32>() - 0.5, 0.)
+    fn sample_square_stratified(&self, i: usize, j: usize, rng: &mut impl Rng) -> Coords {
+        // Returns the vector to a random point in the square sub-pixel specified by grid
+        // indices s_i and s_j, for an idealized unit square pixel [-.5,-.5] to [+.5,+.5].
+
+        let px = ((i as f32 + rng.random::<f32>()) * self.recip_sqrt_spp) - 0.5;
+        let py = ((j as f32 + rng.random::<f32>()) * self.recip_sqrt_spp) - 0.5;
+
+        Coords::new(px, py, 0.)
     }
 
-    fn get_ray(&self, i: usize, j: usize, rng: &mut impl Rng) -> Ray {
-        let offset = self.sample_square(rng);
+    fn get_ray(&self, (i, j): (usize, usize), (si, sj): (usize, usize), rng: &mut impl Rng) -> Ray {
+        // Construct a camera ray originating from the defocus disk and directed at a randomly
+        // sampled point around the pixel location i, j for stratified sample square s_i, s_j.
+        let offset = self.sample_square_stratified(si, sj, rng);
         let pixel_sample = self.pixel00_loc
             + ((i as f32 + offset.x()) * self.pixel_delta_u)
             + ((j as f32 + offset.y()) * self.pixel_delta_v);
@@ -247,16 +251,14 @@ impl Camera {
         let mut rng = SmallRng::from_rng(&mut rand::rng());
         let height = rows.end - rows.start;
         let mut result = Vec::with_capacity(height * self.image.width);
-        for j in rows {
-            for i in 0..self.image.width {
-                let mut pixel_color = Color::default();
-                for _ in 0..self.samples_per_pixel {
-                    let r = self.get_ray(i, j, &mut rng);
-                    pixel_color += self.ray_color(r, world, self.max_depth);
-                }
-                let color = Self::color_to_8b_format(self.pixel_samples_scale * pixel_color);
-                result.push(color);
+        for (j, i) in iproduct!(rows, 0..self.image.width) {
+            let mut pixel_color = Color::default();
+            for (sj, si) in iproduct!(0..self.sqrt_spp, 0..self.sqrt_spp) {
+                let r = self.get_ray((i, j), (si, sj), &mut rng);
+                pixel_color += self.ray_color(r, world, self.max_depth);
             }
+            let color = Self::color_to_8b_format(self.pixel_samples_scale * pixel_color);
+            result.push(color);
         }
         result
     }
@@ -283,7 +285,6 @@ impl Camera {
     }
 
     fn new(
-        pixel_samples_scale: f32,
         pixel_delta_u: Coords,
         pixel_delta_v: Coords,
         pixel00_loc: Coords,
@@ -297,6 +298,10 @@ impl Camera {
         cpu_num: usize,
         background: Color,
     ) -> Self {
+        let sqrt_spp = f32::sqrt(samples_per_pixel as f32) as usize;
+        let pixel_samples_scale = 1.0 / (sqrt_spp as f32 * sqrt_spp as f32);
+        let recip_sqrt_spp = 1.0 / sqrt_spp as f32;
+
         Self {
             pixel_samples_scale,
             pixel_delta_u,
@@ -304,7 +309,8 @@ impl Camera {
             pixel00_loc,
             center,
             image,
-            samples_per_pixel,
+            sqrt_spp,
+            recip_sqrt_spp,
             max_depth,
             defocus_disk_u,
             defocus_disk_v,
