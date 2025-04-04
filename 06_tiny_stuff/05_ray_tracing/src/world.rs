@@ -1,18 +1,18 @@
 use std::ops::Range;
 
-use crate::{hit::{BvhNode, Hit, HitRecord, HitableList}, pdf::PdfWithOrigin, ray::Ray};
+use crate::{hit::{BvhNode, Hit, HitRecord, HitableList}, lights::Lights, pdf::PdfWithOrigin, ray::Ray};
 
 
 pub struct World {
-    objects: HitableList<dyn Hit>,
-    lights: HitableList<dyn PdfWithOrigin>,
+    objects: HitableList,
+    lights: Lights,
 }
 
 impl World {
     pub fn new() -> Self {
         Self {
-            objects: HitableList::<dyn Hit>::new(),
-            lights: HitableList::<dyn PdfWithOrigin>::new()
+            objects: HitableList::new(),
+            lights: Lights::new()
         }
     }
 
@@ -30,14 +30,14 @@ impl World {
         self.objects.push(o);
     }
 
-    pub fn get_lights(&self) -> &HitableList<dyn PdfWithOrigin> {
+    pub fn get_lights(&self) -> &Lights {
         &self.lights
     }
 
     pub fn objects_to_bvh(self) -> Self {
         let bvh = BvhNode::from_list(self.objects);
         let lights = self.lights;
-        let mut objects = HitableList::<dyn Hit>::new();
+        let mut objects = HitableList::new();
         objects.push(bvh);
         Self {
             objects,

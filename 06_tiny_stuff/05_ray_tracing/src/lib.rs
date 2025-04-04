@@ -10,6 +10,7 @@ mod ray;
 mod texture;
 mod vec3;
 mod world;
+mod lights;
 
 use core::f32;
 use std::sync::Arc;

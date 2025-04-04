@@ -56,7 +56,7 @@ impl BvhNode {
         };
     }
 
-    pub fn from_list(list: HitableList<dyn Hit>) -> Self {
+    pub fn from_list(list: HitableList) -> Self {
         let objects = list.take_objects();
         Self::build(objects)
     }
