@@ -299,10 +299,11 @@ fn cornell_box_scene() -> (HitableList, Camera) {
         white.clone(),
     ));
 
+    let aluminum = Metal::new(Color::new(0.8, 0.85, 0.88), 0.0);
     let box1 = BoxObj::new(
         Coords::new(0., 0., 0.),
         Coords::new(165., 330., 165.),
-        white.clone(),
+        aluminum,
     )
     .rotate_y(15.)
     .translate(Coords::new(265., 0., 295.));

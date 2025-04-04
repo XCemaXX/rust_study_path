@@ -6,7 +6,7 @@ mod metal;
 
 use std::{cell::RefCell, sync::Arc};
 
-use crate::{color::Color, coords::Coords, hit::HitRecord, ray::Ray};
+use crate::{color::Color, coords::Coords, hit::HitRecord, pdf::Pdf, ray::Ray};
 pub use dielectric::Dielectric;
 pub use diffuse_ligth::DiffuseLight;
 pub use isotropic::Isotropic;
@@ -14,10 +14,14 @@ pub use lambertian::Lambertian;
 pub use metal::Metal;
 use rand::Rng;
 
+pub enum ScatterType {
+    Diffuse { pdf: Box<dyn Pdf> },
+    Specular { ray: Ray },
+}
+
 pub struct ScatterResult {
-    pub scattered: Ray,
     pub attenuation: Color,
-    pub pdf: Option<f32>,
+    pub scattered: ScatterType,
 }
 
 pub trait Material: Sync + Send {

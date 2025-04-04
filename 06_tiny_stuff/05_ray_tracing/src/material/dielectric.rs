@@ -49,9 +49,8 @@ impl Material for Dielectric {
         };
         let scattered = Ray::new_timed(rec.p, direction, r_in.time());
         Some(ScatterResult {
-            scattered,
             attenuation,
-            pdf: None,
+            scattered: ScatterType::Specular { ray: scattered },
         })
     }
 }

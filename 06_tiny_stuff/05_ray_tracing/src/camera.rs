@@ -1,5 +1,5 @@
-use crate::material::ScatterResult;
-use crate::pdf::{CosinePdf, HitablePdf, MixturePdf, Pdf};
+use crate::material::{ScatterResult, ScatterType};
+use crate::pdf::{HitablePdf, MixturePdf, Pdf};
 use crate::texture::clamp;
 use crate::{Coords, Ray, color::Color, hit::Hit};
 use itertools::iproduct;
@@ -279,18 +279,23 @@ impl Camera {
         let Some(ScatterResult {
             scattered,
             attenuation,
-            pdf,
         }) = rec.material.scatter(&r, &rec)
         else {
             return color_from_emission;
         };
 
-        let p0 = HitablePdf::new(lights, rec.p);
-        let p1 = CosinePdf::new(rec.normal);
-        let mixture_pdf = MixturePdf::new(&p0, &p1);
+        let pdf = match scattered {
+            ScatterType::Diffuse { pdf } => pdf,
+            ScatterType::Specular { ray } => {
+                return attenuation * self.ray_color(ray, world, lights, depth - 1);
+            }
+        };
 
-        let scattered = Ray::new_timed(rec.p, mixture_pdf.generate(), r.time());
-        let pdf_value = mixture_pdf.value(scattered.direction());
+        let light = HitablePdf::new(lights, rec.p);
+        let p = MixturePdf::new(&light, pdf.as_ref());
+
+        let scattered = Ray::new_timed(rec.p, p.generate(), r.time());
+        let pdf_value = p.value(scattered.direction());
 
         let scattering_pdf = rec.material.scattering_pdf(&r, &rec, &scattered);
 

@@ -1,15 +1,10 @@
 use crate::{
-    onb::Onb,
+    pdf::CosinePdf,
     texture::{IntoSharedTexture, SolidColor, Texture},
 };
 
 use super::*;
-use rand::{SeedableRng, rngs::SmallRng};
-use std::{cell::RefCell, f32::consts::PI, sync::Arc};
-
-thread_local! {
-    static LAMBERTIAN_RNG: RefCell<SmallRng> = RefCell::new(SmallRng::from_rng(&mut rand::rng()));
-}
+use std::{f32::consts::PI, sync::Arc};
 
 pub struct Lambertian {
     texture: Arc<dyn Texture>,
@@ -30,27 +25,17 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<ScatterResult> {
-        let uvw = Onb::new(rec.normal);
-        let scatter_direction = LAMBERTIAN_RNG
-            .with(|rng| uvw.transform(Coords::random_cosine_direction(&mut rng.borrow_mut())));
-
-        let scattered = Ray::new_timed(rec.p, scatter_direction.unit_vector(), r_in.time());
+    fn scatter(&self, _r_in: &Ray, rec: &HitRecord) -> Option<ScatterResult> {
         let attenuation = self.texture.value(rec.u, rec.v, rec.p);
-        let pdf = uvw.w().dot(scattered.direction()) / PI;
+        let pdf = Box::new(CosinePdf::new(rec.normal));
         Some(ScatterResult {
-            scattered,
             attenuation,
-            pdf: Some(pdf),
+            scattered: ScatterType::Diffuse { pdf },
         })
     }
 
     fn scattering_pdf(&self, _r_in: &Ray, rec: &HitRecord, scattered: &Ray) -> f32 {
         let cos_theta = rec.normal.dot(Coords::unit_vector(scattered.direction()));
-        if cos_theta < 0.0 {
-            0.
-        } else {
-            cos_theta / PI
-        }
+        if cos_theta < 0.0 { 0. } else { cos_theta / PI }
     }
 }
