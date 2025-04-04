@@ -1,4 +1,4 @@
-use std::{cell::RefCell, sync::Arc};
+use std::{cell::RefCell, f32::consts::PI, sync::Arc};
 
 use rand::{SeedableRng, rngs::SmallRng};
 
@@ -10,7 +10,7 @@ use crate::{
     texture::{IntoSharedTexture, SolidColor, Texture},
 };
 
-use super::Material;
+use super::{Material, ScatterResult};
 
 thread_local! {
     static ISOTROPIC_RNG: RefCell<SmallRng> = RefCell::new(SmallRng::from_rng(&mut rand::rng()));
@@ -34,7 +34,7 @@ impl Isotropic {
 }
 
 impl Material for Isotropic {
-    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<ScatterResult> {
         let scattered = ISOTROPIC_RNG.with(|rng| {
             Ray::new_timed(
                 rec.p,
@@ -43,6 +43,14 @@ impl Material for Isotropic {
             )
         });
         let attenuation = self.texture.value(rec.u, rec.v, rec.p);
-        Some((scattered, attenuation))
+        Some(ScatterResult {
+            scattered,
+            attenuation,
+            pdf: Some(1. / (4. * PI)),
+        })
+    }
+
+    fn scattering_pdf(&self, _r_in: &Ray, _rec: &HitRecord, _scattered: &Ray) -> f32 {
+        1. / (4. * PI)
     }
 }

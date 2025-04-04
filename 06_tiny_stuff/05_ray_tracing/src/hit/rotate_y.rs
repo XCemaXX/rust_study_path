@@ -1,7 +1,7 @@
 use core::f32;
 use std::f32::consts::PI;
 
-use crate::{coords::Coords, ray::Ray, vec3::Axis};
+use crate::{coords::{Axis, Coords}, ray::Ray};
 
 use super::{Aabb, Hit, HitRecord};
 

@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use crate::vec3::Axis;
+use crate::coords::Axis;
 
 use super::{Aabb, Hit, HitableList};
 

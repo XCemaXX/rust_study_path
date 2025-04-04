@@ -7,6 +7,7 @@ mod objects;
 mod ray;
 mod texture;
 mod vec3;
+mod onb;
 
 use core::f32;
 use std::sync::Arc;

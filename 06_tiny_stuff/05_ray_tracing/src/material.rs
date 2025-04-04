@@ -14,8 +14,14 @@ pub use metal::Metal;
 pub use isotropic::Isotropic;
 use rand::Rng;
 
+pub struct ScatterResult {
+    pub scattered: Ray,
+    pub attenuation: Color,
+    pub pdf: Option<f32>,
+}
+
 pub trait Material: Sync + Send {
-    fn scatter(&self, _r_in: &Ray, _rec: &HitRecord) -> Option<(Ray, Color)> {
+    fn scatter(&self, _r_in: &Ray, _rec: &HitRecord) -> Option<ScatterResult> {
         None
     }
 

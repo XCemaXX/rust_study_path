@@ -1,4 +1,7 @@
-use crate::texture::{IntoSharedTexture, SolidColor, Texture};
+use crate::{
+    onb::Onb,
+    texture::{IntoSharedTexture, SolidColor, Texture},
+};
 
 use super::*;
 use rand::{SeedableRng, rngs::SmallRng};
@@ -27,19 +30,27 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
-        let mut scatter_direction = LAMBERTIAN_RNG
-            .with(|rng| Coords::random_on_hemisphere(rec.normal, &mut rng.borrow_mut()));
-        
-        if scatter_direction.near_zero() {
-            scatter_direction = rec.normal;
-        };
-        let scattered = Ray::new_timed(rec.p, scatter_direction, r_in.time());
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<ScatterResult> {
+        let uvw = Onb::new(rec.normal);
+        let scatter_direction = LAMBERTIAN_RNG
+            .with(|rng| uvw.transform(Coords::random_cosine_direction(&mut rng.borrow_mut())));
+
+        let scattered = Ray::new_timed(rec.p, scatter_direction.unit_vector(), r_in.time());
         let attenuation = self.texture.value(rec.u, rec.v, rec.p);
-        Some((scattered, attenuation))
+        let pdf = uvw.w().dot(scattered.direction()) / PI;
+        Some(ScatterResult {
+            scattered,
+            attenuation,
+            pdf: Some(pdf),
+        })
     }
 
-    fn scattering_pdf(&self, _r_in: &Ray, _rec: &HitRecord, _scattered: &Ray) -> f32 {
-        1. / (2. * PI)
+    fn scattering_pdf(&self, _r_in: &Ray, rec: &HitRecord, scattered: &Ray) -> f32 {
+        let cos_theta = rec.normal.dot(Coords::unit_vector(scattered.direction()));
+        if cos_theta < 0.0 {
+            0.
+        } else {
+            cos_theta / PI
+        }
     }
 }

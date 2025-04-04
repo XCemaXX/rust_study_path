@@ -1,5 +1,5 @@
 use std::marker::PhantomData;
-use std::ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Neg, Range, Sub};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Range, Sub};
 
 use rand::Rng;
 
@@ -27,34 +27,6 @@ impl<Tag> Vec3<Tag> {
             rng.random_range(range),
             PhantomData,
         )
-    }
-
-    pub fn unit_vector(self) -> Self {
-        let l = self.length();
-        assert_ne!(l, 0.);
-        self / l
-    }
-
-    pub fn random_unit_vector(rng: &mut impl Rng) -> Self {
-        loop {
-            let p = Self::random(rng, -1.0..1.0);
-            let lensq = p.length_squared();
-            if 1e-160 < lensq && lensq <= 1.0 {
-                return p / f32::sqrt(lensq);
-            }
-        }
-    }
-
-    pub fn random_on_hemisphere(normal: Self, rng: &mut impl Rng) -> Self
-    where
-        Tag: Clone,
-    {
-        let on_unit_sphere = Self::random_unit_vector(rng);
-        if on_unit_sphere.clone().dot(normal) > 0. {
-            on_unit_sphere
-        } else {
-            -on_unit_sphere
-        }
     }
 
     pub fn cross(self, other: Self) -> Self {
@@ -203,25 +175,5 @@ impl<Tag> From<(f32, f32, f32)> for Vec3<Tag> {
 impl<Tag> From<[f32; 3]> for Vec3<Tag> {
     fn from(v: [f32; 3]) -> Self {
         Self::new(v[0], v[1], v[2])
-    }
-}
-
-#[derive(Clone, Copy)]
-pub enum Axis {
-    X,
-    Y,
-    Z,
-}
-
-impl<Tag> Index<Axis> for Vec3<Tag> {
-    type Output = f32;
-
-    fn index(&self, index: Axis) -> &Self::Output {
-        use Axis::*;
-        match index {
-            X => &self.0,
-            Y => &self.1,
-            Z => &self.2,
-        }
     }
 }

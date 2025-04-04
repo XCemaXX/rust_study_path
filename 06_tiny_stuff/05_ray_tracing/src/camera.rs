@@ -1,3 +1,4 @@
+use crate::material::ScatterResult;
 use crate::texture::clamp;
 use crate::{Coords, Ray, color::Color, hit::Hit};
 use itertools::iproduct;
@@ -274,12 +275,11 @@ impl Camera {
         };
 
         let color_from_emission = rec.material.emitted(rec.u, rec.v, rec.p);
-
         rec.material
             .scatter(&r, &rec)
-            .map(|(scattered, attenuation)| {
+            .map(|ScatterResult {scattered, attenuation, pdf }| {
                 let scattering_pdf = rec.material.scattering_pdf(&r, &rec, &scattered);
-                let pdf_value = scattering_pdf;
+                let pdf_value = pdf.unwrap_or(0.);
                 let color_from_scatter =
                     (attenuation * scattering_pdf * self.ray_color(scattered, world, depth - 1))
                         / pdf_value;
