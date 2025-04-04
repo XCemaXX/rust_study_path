@@ -56,6 +56,14 @@ pub trait Hit: Sync {
     fn hit(&self, r: &Ray, ray_t: Range<f32>) -> Option<HitRecord>;
 
     fn bounding_box(&self) -> &Aabb;
+
+    fn pdf_value(&self, _origin: Coords, _direction: Coords) -> f32 {
+        0.0
+    }
+
+    fn random(&self, _origin: Coords) -> Coords {
+        Coords::new(1., 0., 0.)
+    }
 }
 
 pub trait Transformable: Hit + Sized {

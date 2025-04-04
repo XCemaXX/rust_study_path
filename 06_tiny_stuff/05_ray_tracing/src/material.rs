@@ -1,17 +1,17 @@
 mod dielectric;
 mod diffuse_ligth;
+mod isotropic;
 mod lambertian;
 mod metal;
-mod isotropic;
 
 use std::{cell::RefCell, sync::Arc};
 
 use crate::{color::Color, coords::Coords, hit::HitRecord, ray::Ray};
 pub use dielectric::Dielectric;
 pub use diffuse_ligth::DiffuseLight;
+pub use isotropic::Isotropic;
 pub use lambertian::Lambertian;
 pub use metal::Metal;
-pub use isotropic::Isotropic;
 use rand::Rng;
 
 pub struct ScatterResult {
@@ -53,3 +53,7 @@ impl<T: Material + 'static> IntoSharedMaterial for T {
         Arc::new(self)
     }
 }
+
+pub struct EmptyMaterial {}
+
+impl Material for EmptyMaterial {}

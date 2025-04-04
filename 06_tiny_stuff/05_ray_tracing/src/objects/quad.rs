@@ -1,10 +1,18 @@
+use std::cell::RefCell;
 use std::ops::Range;
 use std::sync::Arc;
+
+use rand::rngs::SmallRng;
+use rand::{Rng, SeedableRng};
 
 use crate::Coords;
 use crate::hit::{self, Aabb, HitRecord};
 use crate::material::{IntoSharedMaterial, Material};
 use crate::ray::Ray;
+
+thread_local! {
+    static QUAD_RNG: RefCell<SmallRng> = RefCell::new(SmallRng::from_rng(&mut rand::rng()));
+}
 
 pub struct Quad {
     q: Coords,
@@ -15,6 +23,7 @@ pub struct Quad {
     bbox: Aabb,
     normal: Coords,
     d: f32,
+    area: f32,
 }
 
 impl Quad {
@@ -37,6 +46,7 @@ impl Quad {
             bbox,
             normal,
             d,
+            area: n.length(),
         }
     }
 }
@@ -69,6 +79,27 @@ impl hit::Hit for Quad {
 
     fn bounding_box(&self) -> &Aabb {
         &self.bbox
+    }
+
+    fn pdf_value(&self, origin: Coords, direction: Coords) -> f32 {
+        let ray = Ray::new(origin, direction);
+        let Some(rec) = self.hit(&ray, 0.001..f32::MAX) else {
+            return 0.001; // 0.
+        };
+
+        let distance_squared = rec.t * rec.t * direction.length_squared();
+        let cosine = f32::abs(direction.dot(rec.normal) / direction.length());
+
+        distance_squared / (cosine * self.area)
+    }
+
+    fn random(&self, origin: Coords) -> Coords {
+        let p = QUAD_RNG.with(|rng| {
+            let r1 = rng.borrow_mut().random::<f32>();
+            let r2 = rng.borrow_mut().random::<f32>();
+            self.q + (r1 * self.u) + (r2 * self.v)
+        });
+        p - origin
     }
 }
 

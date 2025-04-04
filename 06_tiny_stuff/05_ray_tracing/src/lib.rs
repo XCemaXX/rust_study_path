@@ -4,10 +4,11 @@ mod coords;
 mod hit;
 mod material;
 mod objects;
+mod onb;
+mod pdf;
 mod ray;
 mod texture;
 mod vec3;
-mod onb;
 
 use core::f32;
 use std::sync::Arc;
@@ -16,7 +17,7 @@ use camera::Camera;
 pub use color::Color;
 use coords::Coords;
 use hit::{BvhNode, Hit, HitableList, Transformable};
-use material::{Dielectric, DiffuseLight, Lambertian, Material, Metal};
+use material::{Dielectric, DiffuseLight, EmptyMaterial, Lambertian, Material, Metal};
 use objects::{BoxObj, ConstantMedium, Quad, Sphere};
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 use ray::Ray;
@@ -507,7 +508,13 @@ pub fn render_world() -> Image {
 
     let world = BvhNode::from_list(world);
 
-    let pixels = camera.render(&world);
+    let lights = Quad::new(
+        Coords::new(343., 554., 332.),
+        Coords::new(-130., 0., 0.),
+        Coords::new(0., 0., -105.),
+        EmptyMaterial {},
+    );
+    let pixels = camera.render(&world, &lights);
 
     Image {
         pixels: pixels,
