@@ -256,7 +256,7 @@ impl Camera {
             let mut pixel_color = Color::default();
             for (sj, si) in iproduct!(0..self.sqrt_spp, 0..self.sqrt_spp) {
                 let r = self.get_ray((i, j), (si, sj), &mut rng);
-                pixel_color += self.ray_color(r, world, self.max_depth);
+                pixel_color += self.ray_color(r, world, self.max_depth, &mut rng);
             }
             let color = Self::color_to_8b_format(self.pixel_samples_scale * pixel_color);
             result.push(color);
@@ -264,7 +264,7 @@ impl Camera {
         result
     }
 
-    fn ray_color(&self, r: Ray, world: &dyn Hit, depth: usize) -> Color {
+    fn ray_color(&self, r: Ray, world: &dyn Hit, depth: usize, rng: &mut impl Rng) -> Color {
         if depth == 0 {
             return Color::new(0., 0., 0.);
         }
@@ -274,18 +274,35 @@ impl Camera {
             return self.background;
         };
 
-        let color_from_emission = rec.material.emitted(rec.u, rec.v, rec.p);
-        rec.material
-            .scatter(&r, &rec)
-            .map(|ScatterResult {scattered, attenuation, pdf }| {
-                let scattering_pdf = rec.material.scattering_pdf(&r, &rec, &scattered);
-                let pdf_value = pdf.unwrap_or(0.);
-                let color_from_scatter =
-                    (attenuation * scattering_pdf * self.ray_color(scattered, world, depth - 1))
+        let color_from_emission = rec.material.emitted(&r, &rec, rec.u, rec.v, rec.p);
+        let Some(ScatterResult { scattered, attenuation, pdf }) = rec.material.scatter(&r, &rec) 
+        else {
+            return color_from_emission;
+        };
+        let pdf_value = pdf.unwrap_or(0.);
+
+        let on_light = Coords::new(rng.random_range(213.0..343.), 554., rng.random_range(227.0..332.));
+        let to_light = on_light - rec.p;
+        let distance_squared = to_light.length_squared();
+        let to_light = to_light.unit_vector();
+
+        if to_light.dot(rec.normal) < 0. {
+            return color_from_emission;
+        }
+
+        let light_area = (343. - 213.) * (332. - 227.);
+        let light_cosine = f32::abs(to_light.y());
+        if light_cosine < 0.000001 {
+            return color_from_emission;
+        }
+
+        let pdf_value = distance_squared / (light_cosine * light_area);
+        let scattered = Ray::new_timed(rec.p, to_light, r.time());
+        let scattering_pdf = rec.material.scattering_pdf(&r, &rec, &scattered);
+        let color_from_scatter =
+                    (attenuation * scattering_pdf * self.ray_color(scattered, world, depth - 1, rng))
                         / pdf_value;
-                color_from_emission + color_from_scatter
-            })
-            .unwrap_or(color_from_emission)
+        color_from_emission + color_from_scatter
     }
 
     fn new(
