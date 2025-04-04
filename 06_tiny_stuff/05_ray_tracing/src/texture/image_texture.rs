@@ -26,8 +26,8 @@ impl Texture for ImageTexture {
         let u = clamp(&(0.0..1.0), u);
         let v = 1. - clamp(&(0.0..1.0), v);
 
-        let j = ((u * width as f32).floor() as usize).min(width);
-        let i = ((v * height as f32).floor() as usize).min(height);
+        let j = ((u * width as f32).floor() as usize).min(width - 1);
+        let i = ((v * height as f32).floor() as usize).min(height - 1);
         let pixel = self.pixels[i][j];
 
         pixel
