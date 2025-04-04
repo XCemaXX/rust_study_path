@@ -278,7 +278,11 @@ impl Camera {
         rec.material
             .scatter(&r, &rec)
             .map(|(scattered, attenuation)| {
-                let color_from_scatter = attenuation * self.ray_color(scattered, world, depth - 1);
+                let scattering_pdf = rec.material.scattering_pdf(&r, &rec, &scattered);
+                let pdf_value = scattering_pdf;
+                let color_from_scatter =
+                    (attenuation * scattering_pdf * self.ray_color(scattered, world, depth - 1))
+                        / pdf_value;
                 color_from_emission + color_from_scatter
             })
             .unwrap_or(color_from_emission)

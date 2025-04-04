@@ -22,6 +22,10 @@ pub trait Material: Sync + Send {
     fn emitted(&self, _u: f32, _v: f32, _p: Coords) -> Color {
         Color::default()
     }
+
+    fn scattering_pdf(&self, _r_in: &Ray, _rec: &HitRecord, _scattered: &Ray) -> f32 {
+        0.0
+    }
 }
 
 fn reflect(v: Coords, n: Coords) -> Coords {

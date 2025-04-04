@@ -45,6 +45,18 @@ impl<Tag> Vec3<Tag> {
         }
     }
 
+    pub fn random_on_hemisphere(normal: Self, rng: &mut impl Rng) -> Self
+    where
+        Tag: Clone,
+    {
+        let on_unit_sphere = Self::random_unit_vector(rng);
+        if on_unit_sphere.clone().dot(normal) > 0. {
+            on_unit_sphere
+        } else {
+            -on_unit_sphere
+        }
+    }
+
     pub fn cross(self, other: Self) -> Self {
         Vec3::new(
             self.1 * other.2 - self.2 * other.1,

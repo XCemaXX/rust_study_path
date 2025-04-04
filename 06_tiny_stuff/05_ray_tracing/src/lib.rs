@@ -489,7 +489,7 @@ pub struct Image {
 }
 
 pub fn render_world() -> Image {
-    let i = 100;
+    let i = 8;
     let (world, camera) = match i {
         1 => simple_scene(),
         2 => bouncing_spheres_scene(),
