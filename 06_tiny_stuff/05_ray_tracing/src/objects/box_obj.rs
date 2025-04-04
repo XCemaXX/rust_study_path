@@ -1,20 +1,20 @@
 use crate::{
     coords::Coords,
     hit::{Aabb, Hit, HitRecord, HitableList},
-    material::IntoSharedMaterial,
+    material::IntoSharedMaterial, pdf::PdfWithOrigin,
 };
 
 use super::Quad;
 
 pub struct BoxObj {
-    sides: HitableList,
+    sides: HitableList<dyn Hit>,
 }
 
 impl BoxObj {
     #[rustfmt::skip]
     pub fn new<M: IntoSharedMaterial>(a: Coords, b: Coords, material: M) -> Self {
         let material = material.into_arc();
-        let mut sides = HitableList::new();
+        let mut sides = HitableList::<dyn Hit>::new();
         let min = Coords::new(a.x().min(b.x()), a.y().min(b.y()), a.z().min(b.z()));
         let max = Coords::new(a.x().max(b.x()), a.y().max(b.y()), a.z().max(b.z()));
 
@@ -41,7 +41,14 @@ impl Hit for BoxObj {
     fn bounding_box(&self) -> &Aabb {
         self.sides.bounding_box()
     }
+}
 
-    // todo add pdf_value
-    // todo add random
+impl PdfWithOrigin for BoxObj {
+    fn pdf_value(&self, origin: Coords, direction: Coords) -> f32 {
+        todo!()
+    }
+    
+    fn random(&self, origin: Coords) -> Coords {
+        todo!()
+    }
 }

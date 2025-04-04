@@ -1,7 +1,8 @@
 use crate::material::{ScatterResult, ScatterType};
 use crate::pdf::{HitablePdf, MixturePdf, Pdf};
 use crate::texture::clamp;
-use crate::{Coords, Ray, color::Color, hit::Hit};
+use crate::world::World;
+use crate::{Coords, Ray, color::Color};
 use itertools::iproduct;
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 use std::{sync::mpsc::channel, thread};
@@ -223,7 +224,7 @@ impl Camera {
         )
     }
 
-    pub fn render(&self, world: &dyn Hit, lights: &dyn Hit) -> Vec<Color> {
+    pub fn render(&self, world: &World) -> Vec<Color> {
         let batch_size = self.image.height / self.cpu_num;
 
         let (tx, rx) = channel();
@@ -237,7 +238,7 @@ impl Camera {
                 };
                 let tx = tx.clone();
                 s.spawn(move || {
-                    let r = self.render_rows(world, lights, y_start..y_end);
+                    let r = self.render_rows(world, y_start..y_end);
                     tx.send((i, r)).unwrap();
                 });
             }
@@ -249,7 +250,7 @@ impl Camera {
         bathes.into_iter().flat_map(|(_, batch)| batch).collect()
     }
 
-    fn render_rows(&self, world: &dyn Hit, lights: &dyn Hit, rows: Range<usize>) -> Vec<Color> {
+    fn render_rows(&self, world: &World, rows: Range<usize>) -> Vec<Color> {
         let mut rng = SmallRng::from_rng(&mut rand::rng());
         let height = rows.end - rows.start;
         let mut result = Vec::with_capacity(height * self.image.width);
@@ -257,7 +258,7 @@ impl Camera {
             let mut pixel_color = Color::default();
             for (sj, si) in iproduct!(0..self.sqrt_spp, 0..self.sqrt_spp) {
                 let r = self.get_ray((i, j), (si, sj), &mut rng);
-                pixel_color += self.ray_color(r, world, lights, self.max_depth);
+                pixel_color += self.ray_color(r, world, self.max_depth);
             }
             let color = Self::color_to_8b_format(self.pixel_samples_scale * pixel_color);
             result.push(color);
@@ -265,7 +266,7 @@ impl Camera {
         result
     }
 
-    fn ray_color(&self, r: Ray, world: &dyn Hit, lights: &dyn Hit, depth: usize) -> Color {
+    fn ray_color(&self, r: Ray, world: &World, depth: usize) -> Color {
         if depth == 0 {
             return Color::new(0., 0., 0.);
         }
@@ -287,11 +288,11 @@ impl Camera {
         let pdf = match scattered {
             ScatterType::Diffuse { pdf } => pdf,
             ScatterType::Specular { ray } => {
-                return attenuation * self.ray_color(ray, world, lights, depth - 1);
+                return attenuation * self.ray_color(ray, world, depth - 1);
             }
         };
 
-        let light = HitablePdf::new(lights, rec.p);
+        let light = HitablePdf::new(world.get_lights(), rec.p);
         let p = MixturePdf::new(&light, pdf.as_ref());
 
         let scattered = Ray::new_timed(rec.p, p.generate(), r.time());
@@ -299,7 +300,7 @@ impl Camera {
 
         let scattering_pdf = rec.material.scattering_pdf(&r, &rec, &scattered);
 
-        let sample_color = self.ray_color(scattered, world, lights, depth - 1);
+        let sample_color = self.ray_color(scattered, world, depth - 1);
         let color_from_scatter = (attenuation * scattering_pdf * sample_color) / pdf_value;
 
         color_from_emission + color_from_scatter

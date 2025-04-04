@@ -1,4 +1,4 @@
-use crate::{coords::Coords, ray::Ray};
+use crate::{coords::Coords, pdf::PdfWithOrigin, ray::Ray};
 
 use super::{Aabb, Hit, HitRecord};
 
@@ -31,5 +31,15 @@ impl<T: Hit> Hit for Translate<T> {
 
     fn bounding_box(&self) -> &Aabb {
         &self.bbox
+    }
+}
+
+impl<T: PdfWithOrigin + Hit> PdfWithOrigin for Translate<T> {
+    fn pdf_value(&self, origin: Coords, direction: Coords) -> f32 {
+        self.object.pdf_value(origin, direction)
+    }
+
+    fn random(&self, origin: Coords) -> Coords {
+        self.object.random(origin)
     }
 }

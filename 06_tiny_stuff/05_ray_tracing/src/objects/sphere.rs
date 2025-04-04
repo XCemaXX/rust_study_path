@@ -5,8 +5,9 @@ use std::sync::Arc;
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
 
+use crate::pdf::PdfWithOrigin;
 use crate::Coords;
-use crate::hit::{self, Aabb, HitRecord};
+use crate::hit::{self, Aabb, Hit, HitRecord};
 use crate::material::{IntoSharedMaterial, Material};
 use crate::onb::Onb;
 use crate::ray::Ray;
@@ -103,7 +104,9 @@ impl hit::Hit for Sphere {
     fn bounding_box(&self) -> &Aabb {
         &self.bbox
     }
+}
 
+impl PdfWithOrigin for Sphere {
     fn pdf_value(&self, origin: Coords, direction: Coords) -> f32 {
         // This method only works for stationary spheres.
         let ray = Ray::new(origin, direction);

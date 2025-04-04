@@ -2,7 +2,7 @@ use std::{cell::RefCell, f32::consts::PI};
 
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 
-use crate::{coords::Coords, hit::Hit, onb::Onb};
+use crate::{coords::Coords, onb::Onb};
 
 thread_local! {
     static PDF_RNG: RefCell<SmallRng> = RefCell::new(SmallRng::from_rng(&mut rand::rng()));
@@ -11,6 +11,11 @@ thread_local! {
 pub trait Pdf {
     fn value(&self, direction: Coords) -> f32;
     fn generate(&self) -> Coords;
+}
+
+pub trait PdfWithOrigin: Sync {
+    fn pdf_value(&self, origin: Coords, direction: Coords) -> f32;
+    fn random(&self, origin: Coords) -> Coords;
 }
 
 pub struct SpherePdf {}
@@ -53,13 +58,14 @@ impl Pdf for CosinePdf {
     }
 }
 
+
 pub struct HitablePdf<'a> {
     origin: Coords,
-    objects: &'a dyn Hit,
+    objects: &'a dyn PdfWithOrigin,
 }
 
 impl<'a> HitablePdf<'a> {
-    pub fn new(objects: &'a dyn Hit, origin: Coords) -> Self {
+    pub fn new(objects: &'a dyn PdfWithOrigin, origin: Coords) -> Self {
         Self { objects, origin }
     }
 }

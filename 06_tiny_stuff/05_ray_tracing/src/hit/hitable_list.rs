@@ -2,7 +2,7 @@ use std::{cell::RefCell, ops::Range};
 
 use rand::{rngs::SmallRng, Rng, SeedableRng};
 
-use crate::{coords::Coords, ray::Ray};
+use crate::{coords::Coords, pdf::PdfWithOrigin, ray::Ray};
 
 use super::{Aabb, Hit, HitRecord};
 
@@ -10,19 +10,21 @@ thread_local! {
     static HITABBLE_LIST_RNG: RefCell<SmallRng> = RefCell::new(SmallRng::from_rng(&mut rand::rng()));
 }
 
-pub struct HitableList {
-    objects: Vec<Box<dyn Hit>>,
+pub struct HitableList<T: ?Sized> {
+    objects: Vec<Box<T>>,
     bbox: Aabb,
 }
 
-impl HitableList {
+impl<T: ?Sized> HitableList<T> {
     pub fn new() -> Self {
         Self {
             objects: Vec::new(),
             bbox: Aabb::empty(),
         }
     }
+}
 
+impl HitableList<dyn Hit> {
     pub fn push(&mut self, object: impl Hit + 'static) {
         let bbox = object.bounding_box().clone();
         self.objects.push(Box::new(object));
@@ -34,7 +36,16 @@ impl HitableList {
     }
 }
 
-impl Hit for HitableList {
+impl HitableList<dyn PdfWithOrigin> {
+    pub fn push(&mut self, object: impl PdfWithOrigin + Hit + 'static) {
+        let bbox = object.bounding_box().clone();
+        self.objects.push(Box::new(object));
+        self.bbox = Aabb::from_boxes(self.bbox.clone(), bbox);
+    }
+}
+
+
+impl<T: ?Sized + Hit> Hit for HitableList<T> {
     fn hit(&self, r: &Ray, ray_t: Range<f32>) -> Option<HitRecord> {
         let mut hit_anything = None;
         let mut closest_so_far = ray_t.end;
@@ -51,7 +62,9 @@ impl Hit for HitableList {
     fn bounding_box(&self) -> &Aabb {
         &self.bbox
     }
+}
 
+impl PdfWithOrigin for HitableList<dyn PdfWithOrigin> {
     fn pdf_value(&self, origin: Coords, direction: Coords) -> f32 {
         let weight = 1.0 / self.objects.len() as f32;
         let sum = self.objects.iter().fold(0., 
@@ -69,7 +82,7 @@ impl Hit for HitableList {
     }
 }
 
-impl FromIterator<Box<dyn Hit>> for HitableList {
+impl FromIterator<Box<dyn Hit>> for HitableList<dyn Hit> {
     fn from_iter<T: IntoIterator<Item = Box<dyn Hit>>>(iter: T) -> Self {
         let objects: Vec<Box<dyn Hit>> = iter.into_iter().collect();
         let bbox = objects.iter().fold(Aabb::empty(), |acc, object| {
