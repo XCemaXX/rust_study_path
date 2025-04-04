@@ -1,8 +1,14 @@
-use std::ops::Range;
+use std::{cell::RefCell, ops::Range};
 
-use crate::ray::Ray;
+use rand::{rngs::SmallRng, Rng, SeedableRng};
+
+use crate::{coords::Coords, ray::Ray};
 
 use super::{Aabb, Hit, HitRecord};
+
+thread_local! {
+    static HITABBLE_LIST_RNG: RefCell<SmallRng> = RefCell::new(SmallRng::from_rng(&mut rand::rng()));
+}
 
 pub struct HitableList {
     objects: Vec<Box<dyn Hit>>,
@@ -44,6 +50,22 @@ impl Hit for HitableList {
 
     fn bounding_box(&self) -> &Aabb {
         &self.bbox
+    }
+
+    fn pdf_value(&self, origin: Coords, direction: Coords) -> f32 {
+        let weight = 1.0 / self.objects.len() as f32;
+        let sum = self.objects.iter().fold(0., 
+            |acc, o| {
+                acc + weight * o.pdf_value(origin, direction)
+            });
+        sum
+    }
+
+    fn random(&self, origin: Coords) -> Coords {
+        HITABBLE_LIST_RNG.with(|rng| {
+            let i = rng.borrow_mut().random_range(0..self.objects.len());
+            self.objects[i].random(origin)
+        }) 
     }
 }
 

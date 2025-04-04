@@ -1,12 +1,21 @@
+use std::cell::RefCell;
 use std::ops::Range;
 use std::sync::Arc;
+
+use rand::rngs::SmallRng;
+use rand::{Rng, SeedableRng};
 
 use crate::Coords;
 use crate::hit::{self, Aabb, HitRecord};
 use crate::material::{IntoSharedMaterial, Material};
+use crate::onb::Onb;
 use crate::ray::Ray;
 
 use std::f32::consts::PI;
+
+thread_local! {
+    static SPHERE_RNG: RefCell<SmallRng> = RefCell::new(SmallRng::from_rng(&mut rand::rng()));
+}
 
 pub struct Sphere {
     center: Ray,
@@ -94,4 +103,39 @@ impl hit::Hit for Sphere {
     fn bounding_box(&self) -> &Aabb {
         &self.bbox
     }
+
+    fn pdf_value(&self, origin: Coords, direction: Coords) -> f32 {
+        // This method only works for stationary spheres.
+        let ray = Ray::new(origin, direction);
+        let Some(_) = self.hit(&ray, 0.001..f32::MAX) else {
+            return 0.0;
+        };
+
+        let dist_squared = (self.center.at(0.) - origin).length_squared();
+        let cos_theta_max = f32::sqrt(1. - self.radius * self.radius / dist_squared);
+        let solid_angle = 2. * PI * (1. - cos_theta_max);
+
+        1. / solid_angle
+    }
+
+    fn random(&self, origin: Coords) -> Coords {
+        let direction = self.center.at(0.) - origin;
+        let distance_squared = direction.length_squared();
+        let uvw = Onb::new(direction);
+        uvw.transform(random_to_sphere(self.radius, distance_squared))
+    }
+}
+
+fn random_to_sphere(radius: f32, distance_squared: f32) -> Coords {
+    let (r1, r2) = SPHERE_RNG.with(|rng| {
+        let r1 = rng.borrow_mut().random::<f32>();
+        let r2 = rng.borrow_mut().random::<f32>();
+        (r1, r2)
+    });
+    let z = 1. + r2 * (f32::sqrt(1. - radius * radius / distance_squared) - 1.);
+    let phi = 2. * PI * r1;
+    let x = f32::cos(phi) * f32::sqrt(1. - z * z);
+    let y = f32::sin(phi) * f32::sqrt(1. - z * z);
+
+    return Coords::new(x, y, z);
 }

@@ -299,11 +299,10 @@ fn cornell_box_scene() -> (HitableList, Camera) {
         white.clone(),
     ));
 
-    let aluminum = Metal::new(Color::new(0.8, 0.85, 0.88), 0.0);
     let box1 = BoxObj::new(
         Coords::new(0., 0., 0.),
         Coords::new(165., 330., 165.),
-        aluminum,
+        white.clone(),
     )
     .rotate_y(15.)
     .translate(Coords::new(265., 0., 295.));
@@ -316,6 +315,67 @@ fn cornell_box_scene() -> (HitableList, Camera) {
     .rotate_y(-18.)
     .translate(Coords::new(130., 0., 65.));
     world.push(box2);
+
+    (world, camera_cornel())
+}
+
+fn cornell_plus_box_scene() -> (HitableList, Camera) {
+    let mut world = HitableList::new();
+    let red = Color::new(0.65, 0.05, 0.05);
+    let white: Arc<dyn Material> = Arc::new(Lambertian::from_color(Color::new(0.73, 0.73, 0.73)));
+    let green = Lambertian::from_color(Color::new(0.12, 0.45, 0.15));
+    let light = Color::new(15., 15., 15.);
+
+    world.push(Quad::new(
+        Coords::new(555., 0., 0.),
+        Coords::new(0., 555., 0.),
+        Coords::new(0., 0., 555.),
+        green,
+    ));
+    world.push(Quad::new(
+        Coords::new(0., 0., 0.),
+        Coords::new(0., 555., 0.),
+        Coords::new(0., 0., 555.),
+        Lambertian::from_color(red),
+    ));
+    world.push(Quad::new(
+        Coords::new(343., 554., 332.),
+        Coords::new(-130., 0., 0.),
+        Coords::new(0., 0., -105.),
+        DiffuseLight::from_color(light),
+    ));
+    world.push(Quad::new(
+        Coords::new(0., 0., 0.),
+        Coords::new(555., 0., 0.),
+        Coords::new(0., 0., 555.),
+        white.clone(),
+    ));
+    world.push(Quad::new(
+        Coords::new(555., 555., 555.),
+        Coords::new(-555., 0., 0.),
+        Coords::new(0., 0., -555.),
+        white.clone(),
+    ));
+    world.push(Quad::new(
+        Coords::new(0., 0., 555.),
+        Coords::new(555., 0., 0.),
+        Coords::new(0., 555., 0.),
+        white.clone(),
+    ));
+
+    let aluminum = Metal::new(Color::new(0.8, 0.85, 0.88), 0.0);
+    let box1 = BoxObj::new(
+        Coords::new(0., 0., 0.),
+        Coords::new(165., 330., 165.),
+        aluminum,
+    )
+    .rotate_y(15.)
+    .translate(Coords::new(265., 0., 295.));
+    world.push(box1);
+
+    let glass = Dielectric::new(1.5);
+    let sphere = Sphere::new(Coords::new(190., 90., 190.), 90., glass);
+    world.push(sphere);
 
     (world, camera_cornel())
 }
@@ -492,7 +552,7 @@ pub struct Image {
 }
 
 pub fn render_world() -> Image {
-    let i = 8;
+    let i = 9;
     let (world, camera) = match i {
         1 => simple_scene(),
         2 => bouncing_spheres_scene(),
@@ -502,19 +562,26 @@ pub fn render_world() -> Image {
         6 => quads_scene(),
         7 => simple_light_scene(),
         8 => cornell_box_scene(),
-        9 => cornell_smoke_scene(),
-        10 => final_scene(800, 10000, 40),
+        9 => cornell_plus_box_scene(),
+        10 => cornell_smoke_scene(),
+        11 => final_scene(800, 10000, 40),
         _ => final_scene(400, 250, 4),
     };
 
     let world = BvhNode::from_list(world);
 
-    let lights = Quad::new(
+    let mut lights = HitableList::new();
+    lights.push(Quad::new(
         Coords::new(343., 554., 332.),
         Coords::new(-130., 0., 0.),
         Coords::new(0., 0., -105.),
         EmptyMaterial {},
-    );
+    ));
+    lights.push(Sphere::new(
+        Coords::new(190., 90., 190.),
+        90.,
+        EmptyMaterial {},
+    ));
     let pixels = camera.render(&world, &lights);
 
     Image {

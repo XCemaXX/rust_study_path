@@ -84,7 +84,7 @@ impl hit::Hit for Quad {
     fn pdf_value(&self, origin: Coords, direction: Coords) -> f32 {
         let ray = Ray::new(origin, direction);
         let Some(rec) = self.hit(&ray, 0.001..f32::MAX) else {
-            return 0.001; // 0.
+            return 0.001; //todo 0.
         };
 
         let distance_squared = rec.t * rec.t * direction.length_squared();

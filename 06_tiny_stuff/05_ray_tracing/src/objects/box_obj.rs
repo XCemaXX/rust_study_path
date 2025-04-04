@@ -41,4 +41,7 @@ impl Hit for BoxObj {
     fn bounding_box(&self) -> &Aabb {
         self.sides.bounding_box()
     }
+
+    // todo add pdf_value
+    // todo add random
 }
