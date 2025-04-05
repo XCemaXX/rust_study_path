@@ -3,6 +3,7 @@ use crate::pdf::{HitablePdf, MixturePdf, Pdf};
 use crate::texture::clamp;
 use crate::world::World;
 use crate::{Coords, Ray, color::Color};
+use crossbeam_channel::unbounded;
 use itertools::iproduct;
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 use std::{sync::mpsc::channel, thread};
@@ -225,29 +226,47 @@ impl Camera {
     }
 
     pub fn render(&self, world: &World) -> Vec<Color> {
-        let batch_size = self.image.height / self.cpu_num;
-
-        let (tx, rx) = channel();
+        let batch_size = self.calc_batch_size();
+        assert!(batch_size > 0);
+        let (task_tx, task_rx) = unbounded::<(usize, usize, usize)>();
+        let (res_tx, res_rx) = channel();
+        let mut i = 0;
+        let mut y_start = 0;
+        while y_start < self.image.height {
+            let y_end = (y_start + batch_size).min(self.image.height);
+            task_tx.send((i, y_start, y_end)).unwrap();
+            y_start = y_end;
+            i += 1;
+        }
+        drop(task_tx);
         thread::scope(|s| {
-            for i in 0..self.cpu_num {
-                let y_start = i * batch_size;
-                let y_end = if i + 1 == self.cpu_num {
-                    self.image.height
-                } else {
-                    (i + 1) * batch_size
-                };
-                let tx = tx.clone();
+            for _ in 0..self.cpu_num {
+                let task_rx = task_rx.clone();
+                let res_tx = res_tx.clone();
                 s.spawn(move || {
-                    let r = self.render_rows(world, y_start..y_end);
-                    tx.send((i, r)).unwrap();
+                    while let Ok((i, y_start, y_end)) = task_rx.recv() {
+                        let r = self.render_rows(world, y_start..y_end);
+                        res_tx.send((i, r)).unwrap();
+                    }
                 });
             }
         });
-        drop(tx);
+        drop(res_tx);
 
-        let mut bathes = rx.iter().collect::<Vec<_>>();
+        let mut bathes = res_rx.iter().collect::<Vec<_>>();
         bathes.sort_by_key(|&(i, _)| i);
         bathes.into_iter().flat_map(|(_, batch)| batch).collect()
+    }
+
+    fn calc_batch_size(&self) -> usize {
+        let magic_coef = 1e9;
+        let batch_count =
+            self.image.height as f64 * self.image.width as f64 * self.max_depth as f64
+                / self.pixel_samples_scale as f64
+                / magic_coef;
+        let batch_count = self.cpu_num.max(next_power_of_two(batch_count));
+        let batch_size = self.image.height / batch_count;
+        batch_size.max(1)
     }
 
     fn render_rows(&self, world: &World, rows: Range<usize>) -> Vec<Color> {
@@ -351,4 +370,21 @@ fn compute_pdf<T: Pdf + ?Sized>(p: &T, rec_p: Coords, r: &Ray) -> (Ray, f32) {
     let scattered = Ray::new_timed(rec_p, p.generate(), r.time());
     let pdf_value = p.value(scattered.direction());
     (scattered, pdf_value)
+}
+
+fn next_power_of_two(x: f64) -> usize {
+    if x <= 1.0 {
+        return 1;
+    }
+    let n = x.log2();
+    let floor_n = n.floor();
+    let candidate = 2f64.powf(floor_n);
+    let tolerance = 1e-6;
+    if (x - candidate).abs() / candidate < tolerance {
+        candidate as usize
+    } else if candidate < x {
+        2usize.pow((floor_n as u32) + 1)
+    } else {
+        candidate as usize
+    }
 }
