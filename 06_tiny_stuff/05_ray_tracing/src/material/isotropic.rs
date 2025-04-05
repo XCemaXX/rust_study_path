@@ -1,20 +1,14 @@
-use std::{cell::RefCell, sync::Arc};
-
-use rand::{SeedableRng, rngs::SmallRng};
+use std::{f32::consts::PI, sync::Arc};
 
 use crate::{
     Color,
-    coords::Coords,
     hit::HitRecord,
+    pdf::SpherePdf,
     ray::Ray,
     texture::{IntoSharedTexture, SolidColor, Texture},
 };
 
-use super::Material;
-
-thread_local! {
-    static ISOTROPIC_RNG: RefCell<SmallRng> = RefCell::new(SmallRng::from_rng(&mut rand::rng()));
-}
+use super::{Material, ScatterResult, ScatterType};
 
 pub struct Isotropic {
     texture: Arc<dyn Texture>,
@@ -34,15 +28,16 @@ impl Isotropic {
 }
 
 impl Material for Isotropic {
-    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
-        let scattered = ISOTROPIC_RNG.with(|rng| {
-            Ray::new_timed(
-                rec.p,
-                Coords::random_unit_vector(&mut rng.borrow_mut()),
-                r_in.time(),
-            )
-        });
+    fn scatter(&self, _r_in: &Ray, rec: &HitRecord) -> Option<ScatterResult> {
         let attenuation = self.texture.value(rec.u, rec.v, rec.p);
-        Some((scattered, attenuation))
+        let pdf = Box::new(SpherePdf::new());
+        Some(ScatterResult {
+            attenuation,
+            scattered: ScatterType::Diffuse { pdf },
+        })
+    }
+
+    fn scattering_pdf(&self, _r_in: &Ray, _rec: &HitRecord, _scattered: &Ray) -> f32 {
+        1. / (4. * PI)
     }
 }

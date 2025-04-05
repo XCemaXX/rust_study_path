@@ -30,7 +30,7 @@ fn reflectance(cosine: f32, refraction_index: f32) -> f32 {
 }
 
 impl Material for Dielectric {
-    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<ScatterResult> {
         let attenuation = Color::new(1., 1., 1.);
         let ri = if rec.front_face {
             1. / self.ref_idx
@@ -48,6 +48,9 @@ impl Material for Dielectric {
             refract(unit_direction, rec.normal, ri)
         };
         let scattered = Ray::new_timed(rec.p, direction, r_in.time());
-        Some((scattered, attenuation))
+        Some(ScatterResult {
+            attenuation,
+            scattered: ScatterType::Specular { ray: scattered },
+        })
     }
 }

@@ -53,9 +53,6 @@ impl FromIterator<Box<dyn Hit>> for HitableList {
         let bbox = objects.iter().fold(Aabb::empty(), |acc, object| {
             Aabb::from_boxes(acc, object.bounding_box().clone())
         });
-        Self {
-            objects,
-            bbox
-        }
+        Self { objects, bbox }
     }
 }

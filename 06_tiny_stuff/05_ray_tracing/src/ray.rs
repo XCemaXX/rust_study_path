@@ -1,6 +1,6 @@
 use crate::coords::Coords;
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Ray {
     orig: Coords,
     dir: Coords,

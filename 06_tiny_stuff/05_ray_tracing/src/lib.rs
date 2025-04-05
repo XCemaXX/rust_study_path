@@ -4,9 +4,13 @@ mod coords;
 mod hit;
 mod material;
 mod objects;
+mod onb;
+mod pdf;
 mod ray;
 mod texture;
 mod vec3;
+mod world;
+mod lights;
 
 use core::f32;
 use std::sync::Arc;
@@ -14,13 +18,14 @@ use std::sync::Arc;
 use camera::Camera;
 pub use color::Color;
 use coords::Coords;
-use hit::{BvhNode, Hit, HitableList, Transformable};
+use hit::{BvhNode, Hit, Transformable};
 use material::{Dielectric, DiffuseLight, Lambertian, Material, Metal};
 use objects::{BoxObj, ConstantMedium, Quad, Sphere};
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 use ray::Ray;
 use texture::{CheckerTexture, ImageTexture, NoiseTexture, Texture};
 use vec3::Vec3;
+use world::World;
 
 const EARTH_TEXTURE_RAW: &'static [u8] = include_bytes!("../assets/earthmap.png");
 
@@ -39,8 +44,8 @@ fn camera_one() -> Camera {
         .build()
 }
 
-fn simple_scene() -> (HitableList, Camera) {
-    let mut world = HitableList::new();
+fn simple_scene() -> (World, Camera) {
+    let mut world = World::new();
     world.push(Sphere::new(
         Vec3::new(0., 0., -1.2),
         0.5,
@@ -66,9 +71,9 @@ fn simple_scene() -> (HitableList, Camera) {
     (world, camera_one())
 }
 
-fn bouncing_spheres_scene() -> (HitableList, Camera) {
+fn bouncing_spheres_scene() -> (World, Camera) {
     let mut rng = SmallRng::from_rng(&mut rand::rng());
-    let mut world = HitableList::new();
+    let mut world = World::new();
 
     let ground = Lambertian::from_texture(CheckerTexture::from_colors(
         0.32,
@@ -111,8 +116,8 @@ fn bouncing_spheres_scene() -> (HitableList, Camera) {
     (world, camera_one())
 }
 
-fn checkered_spheres_scene() -> (HitableList, Camera) {
-    let mut world = HitableList::new();
+fn checkered_spheres_scene() -> (World, Camera) {
+    let mut world = World::new();
 
     let checker: Arc<dyn Texture> = Arc::new(CheckerTexture::from_colors(
         0.32,
@@ -132,16 +137,16 @@ fn checkered_spheres_scene() -> (HitableList, Camera) {
     (world, camera_one())
 }
 
-fn earth_scene() -> (HitableList, Camera) {
-    let mut world = HitableList::new();
+fn earth_scene() -> (World, Camera) {
+    let mut world = World::new();
     let earth = Lambertian::from_texture(ImageTexture::from_png(EARTH_TEXTURE_RAW));
     let globe = Sphere::new(Vec3::new(0., 0., 0.), 2., earth);
     world.push(globe);
     (world, camera_one())
 }
 
-fn perlin_spheres_scene() -> (HitableList, Camera) {
-    let mut world = HitableList::new();
+fn perlin_spheres_scene() -> (World, Camera) {
+    let mut world = World::new();
     let noise: Arc<dyn Material> = Arc::new(Lambertian::from_texture(NoiseTexture::new(4.)));
     world.push(Sphere::new(Vec3::new(0., -1000., 0.), 1000., noise.clone()));
     world.push(Sphere::new(Vec3::new(0., 2., 0.), 2., noise));
@@ -149,8 +154,8 @@ fn perlin_spheres_scene() -> (HitableList, Camera) {
     (world, camera_one())
 }
 
-fn quads_scene() -> (HitableList, Camera) {
-    let mut world = HitableList::new();
+fn quads_scene() -> (World, Camera) {
+    let mut world = World::new();
     let left_red = Lambertian::from_color(Color::new(1., 0.2, 0.2));
     let back_green = Lambertian::from_color(Color::new(0.2, 1., 0.2));
     let right_blue = Lambertian::from_color(Color::new(0.2, 0.2, 1.));
@@ -203,19 +208,19 @@ fn quads_scene() -> (HitableList, Camera) {
     (world, camera)
 }
 
-fn simple_light_scene() -> (HitableList, Camera) {
-    let mut world = HitableList::new();
+fn simple_light_scene() -> (World, Camera) {
+    let mut world = World::new();
     let noise: Arc<dyn Material> = Arc::new(Lambertian::from_texture(NoiseTexture::new(4.)));
     world.push(Sphere::new(Vec3::new(0., -1000., 0.), 1000., noise.clone()));
     world.push(Sphere::new(Vec3::new(0., 2., 0.), 2., noise));
 
     let light = Color::new(4., 4., 4.);
-    world.push(Sphere::new(
+    world.push_light(Sphere::new(
         Coords::new(0., 7., 0.),
         2.,
         DiffuseLight::from_color(light),
     ));
-    world.push(Quad::new(
+    world.push_light(Quad::new(
         Coords::new(3., 1., -2.),
         Coords::new(2., 0., 0.),
         Coords::new(0., 2., 0.),
@@ -253,8 +258,8 @@ fn camera_cornel() -> Camera {
         .build()
 }
 
-fn cornell_box_scene() -> (HitableList, Camera) {
-    let mut world = HitableList::new();
+fn cornell_box_scene() -> (World, Camera) {
+    let mut world = World::new();
     let red = Color::new(0.65, 0.05, 0.05);
     let white: Arc<dyn Material> = Arc::new(Lambertian::from_color(Color::new(0.73, 0.73, 0.73)));
     let green = Lambertian::from_color(Color::new(0.12, 0.45, 0.15));
@@ -272,7 +277,7 @@ fn cornell_box_scene() -> (HitableList, Camera) {
         Coords::new(0., 0., 555.),
         Lambertian::from_color(red),
     ));
-    world.push(Quad::new(
+    world.push_light(Quad::new(
         Coords::new(343., 554., 332.),
         Coords::new(-130., 0., 0.),
         Coords::new(0., 0., -105.),
@@ -317,8 +322,8 @@ fn cornell_box_scene() -> (HitableList, Camera) {
     (world, camera_cornel())
 }
 
-fn cornell_smoke_scene() -> (HitableList, Camera) {
-    let mut world = HitableList::new();
+fn cornell_plus_box_scene() -> (World, Camera) {
+    let mut world = World::new();
     let red = Color::new(0.65, 0.05, 0.05);
     let white: Arc<dyn Material> = Arc::new(Lambertian::from_color(Color::new(0.73, 0.73, 0.73)));
     let green = Lambertian::from_color(Color::new(0.12, 0.45, 0.15));
@@ -336,7 +341,68 @@ fn cornell_smoke_scene() -> (HitableList, Camera) {
         Coords::new(0., 0., 555.),
         Lambertian::from_color(red),
     ));
+    world.push_light(Quad::new(
+        Coords::new(343., 554., 332.),
+        Coords::new(-130., 0., 0.),
+        Coords::new(0., 0., -105.),
+        DiffuseLight::from_color(light),
+    ));
     world.push(Quad::new(
+        Coords::new(0., 0., 0.),
+        Coords::new(555., 0., 0.),
+        Coords::new(0., 0., 555.),
+        white.clone(),
+    ));
+    world.push(Quad::new(
+        Coords::new(555., 555., 555.),
+        Coords::new(-555., 0., 0.),
+        Coords::new(0., 0., -555.),
+        white.clone(),
+    ));
+    world.push(Quad::new(
+        Coords::new(0., 0., 555.),
+        Coords::new(555., 0., 0.),
+        Coords::new(0., 555., 0.),
+        white.clone(),
+    ));
+
+    let aluminum = Metal::new(Color::new(0.8, 0.85, 0.88), 0.0);
+    let box1 = BoxObj::new(
+        Coords::new(0., 0., 0.),
+        Coords::new(165., 330., 165.),
+        aluminum,
+    )
+    .rotate_y(15.)
+    .translate(Coords::new(265., 0., 295.));
+    world.push(box1);
+
+    let glass = Dielectric::new(1.5);
+    let sphere = Sphere::new(Coords::new(190., 90., 190.), 90., glass);
+    world.push_light(sphere);
+
+    (world, camera_cornel())
+}
+
+fn cornell_smoke_scene() -> (World, Camera) {
+    let mut world = World::new();
+    let red = Color::new(0.65, 0.05, 0.05);
+    let white: Arc<dyn Material> = Arc::new(Lambertian::from_color(Color::new(0.73, 0.73, 0.73)));
+    let green = Lambertian::from_color(Color::new(0.12, 0.45, 0.15));
+    let light = Color::new(15., 15., 15.);
+
+    world.push(Quad::new(
+        Coords::new(555., 0., 0.),
+        Coords::new(0., 555., 0.),
+        Coords::new(0., 0., 555.),
+        green,
+    ));
+    world.push(Quad::new(
+        Coords::new(0., 0., 0.),
+        Coords::new(0., 555., 0.),
+        Coords::new(0., 0., 555.),
+        Lambertian::from_color(red),
+    ));
+    world.push_light(Quad::new(
         Coords::new(343., 554., 332.),
         Coords::new(-130., 0., 0.),
         Coords::new(0., 0., -105.),
@@ -388,7 +454,7 @@ fn final_scene(
     image_width: usize,
     samples_per_pixel: usize,
     max_depth: usize,
-) -> (HitableList, Camera) {
+) -> (World, Camera) {
     let mut rng = SmallRng::from_rng(&mut rand::rng());
 
     let ground: Arc<dyn Material> = Arc::new(Lambertian::from_color(Color::new(0.48, 0.83, 0.53)));
@@ -402,13 +468,13 @@ fn final_scene(
             let b = Coords::new(a.x() + w, rng.random_range(1.0..101.), a.z() + w);
             Box::new(BoxObj::new(a, b, ground.clone())) as Box<dyn Hit>
         })
-        .collect::<HitableList>();
+        .collect();
 
-    let mut world = HitableList::new();
+    let mut world = World::new();
     world.push(BvhNode::from_list(ground_boxes));
 
     let light: DiffuseLight = DiffuseLight::from_color(Color::new(7., 7., 7.));
-    world.push(Quad::new(
+    world.push_light(Quad::new(
         Coords::new(123., 554., 147.),
         Coords::new(300., 0., 0.),
         Coords::new(0., 0., 265.),
@@ -459,7 +525,7 @@ fn final_scene(
     let boxes2 = (0..ns)
         .map(|_| Sphere::new(Coords::random(&mut rng, 0.0..165.), 10., white.clone()))
         .map(|s| Box::new(s) as Box<dyn Hit>)
-        .collect::<HitableList>();
+        .collect();
 
     world.push(
         BvhNode::from_list(boxes2)
@@ -499,12 +565,13 @@ pub fn render_world() -> Image {
         6 => quads_scene(),
         7 => simple_light_scene(),
         8 => cornell_box_scene(),
-        9 => cornell_smoke_scene(),
-        10 => final_scene(800, 10000, 40),
+        9 => cornell_plus_box_scene(),
+        10 => cornell_smoke_scene(),
+        11 => final_scene(800, 10000, 40),
         _ => final_scene(400, 250, 4),
     };
 
-    let world = BvhNode::from_list(world);
+    let world = world.objects_to_bvh();
 
     let pixels = camera.render(&world);
 

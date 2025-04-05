@@ -1,4 +1,4 @@
-use crate::{coords::Coords, ray::Ray, vec3::Axis};
+use crate::{coords::{Axis, Coords}, ray::Ray};
 use std::ops::{Add, Index, Range};
 
 #[derive(Clone)]

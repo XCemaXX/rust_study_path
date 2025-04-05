@@ -1,5 +1,10 @@
+use crate::material::{ScatterResult, ScatterType};
+use crate::pdf::{HitablePdf, MixturePdf, Pdf};
 use crate::texture::clamp;
-use crate::{Coords, Ray, color::Color, hit::Hit};
+use crate::world::World;
+use crate::{Coords, Ray, color::Color};
+use crossbeam_channel::unbounded;
+use itertools::iproduct;
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 use std::{sync::mpsc::channel, thread};
 
@@ -94,7 +99,6 @@ impl Builder {
         } else {
             image_height as usize
         };
-        let pixel_samples_scale = 1. / self.samples_per_pixel as f32;
         let center = self.lookfrom;
         let theta = degrees_to_radians(self.vfov);
         let h = f32::tan(theta / 2.);
@@ -118,7 +122,6 @@ impl Builder {
         let defocus_disk_u = u * defocus_radius;
         let defocus_disk_v = v * defocus_radius;
         Camera::new(
-            pixel_samples_scale,
             pixel_delta_u,
             pixel_delta_v,
             pixel00_loc,
@@ -150,7 +153,8 @@ pub struct Camera {
     pixel00_loc: Coords,      // Location of pixel 0, 0
     center: Coords,           // Camera center
     pub image: Image,
-    samples_per_pixel: usize,
+    sqrt_spp: usize,     // Square root of number of samples per pixel
+    recip_sqrt_spp: f32, // 1 / sqrt_spp
     max_depth: usize,
     defocus_disk_u: Coords, // Defocus disk horizontal radius
     defocus_disk_v: Coords, // Defocus disk vertical radius
@@ -162,11 +166,7 @@ pub struct Camera {
 
 fn random_in_unit_disk(rng: &mut impl Rng) -> Coords {
     loop {
-        let p = Coords::new(
-            rng.random_range(-1.0..1.0),
-            rng.random_range(-1.0..1.0),
-            0.,
-        );
+        let p = Coords::new(rng.random_range(-1.0..1.0), rng.random_range(-1.0..1.0), 0.);
         if p.length_squared() < 1. {
             break p;
         }
@@ -187,12 +187,20 @@ impl Camera {
         return self.center + (p.x() * self.defocus_disk_u) + (p.y() * self.defocus_disk_v);
     }
 
-    fn sample_square(&self, rng: &mut impl Rng) -> Coords {
-        Coords::new(rng.random::<f32>() - 0.5, rng.random::<f32>() - 0.5, 0.)
+    fn sample_square_stratified(&self, i: usize, j: usize, rng: &mut impl Rng) -> Coords {
+        // Returns the vector to a random point in the square sub-pixel specified by grid
+        // indices s_i and s_j, for an idealized unit square pixel [-.5,-.5] to [+.5,+.5].
+
+        let px = ((i as f32 + rng.random::<f32>()) * self.recip_sqrt_spp) - 0.5;
+        let py = ((j as f32 + rng.random::<f32>()) * self.recip_sqrt_spp) - 0.5;
+
+        Coords::new(px, py, 0.)
     }
 
-    fn get_ray(&self, i: usize, j: usize, rng: &mut impl Rng) -> Ray {
-        let offset = self.sample_square(rng);
+    fn get_ray(&self, (i, j): (usize, usize), (si, sj): (usize, usize), rng: &mut impl Rng) -> Ray {
+        // Construct a camera ray originating from the defocus disk and directed at a randomly
+        // sampled point around the pixel location i, j for stratified sample square s_i, s_j.
+        let offset = self.sample_square_stratified(si, sj, rng);
         let pixel_sample = self.pixel00_loc
             + ((i as f32 + offset.x()) * self.pixel_delta_u)
             + ((j as f32 + offset.y()) * self.pixel_delta_v);
@@ -217,51 +225,67 @@ impl Camera {
         )
     }
 
-    pub fn render(&self, world: &dyn Hit) -> Vec<Color> {
-        let batch_size = self.image.height / self.cpu_num;
-
-        let (tx, rx) = channel();
+    pub fn render(&self, world: &World) -> Vec<Color> {
+        let batch_size = self.calc_batch_size();
+        assert!(batch_size > 0);
+        let (task_tx, task_rx) = unbounded::<(usize, usize, usize)>();
+        let (res_tx, res_rx) = channel();
+        let mut i = 0;
+        let mut y_start = 0;
+        while y_start < self.image.height {
+            let y_end = (y_start + batch_size).min(self.image.height);
+            task_tx.send((i, y_start, y_end)).unwrap();
+            y_start = y_end;
+            i += 1;
+        }
+        drop(task_tx);
         thread::scope(|s| {
-            for i in 0..self.cpu_num {
-                let y_start = i * batch_size;
-                let y_end = if i + 1 == self.cpu_num {
-                    self.image.height
-                } else {
-                    (i + 1) * batch_size
-                };
-                let tx = tx.clone();
+            for _ in 0..self.cpu_num {
+                let task_rx = task_rx.clone();
+                let res_tx = res_tx.clone();
                 s.spawn(move || {
-                    let r = self.render_rows(world, y_start..y_end);
-                    tx.send((i, r)).unwrap();
+                    while let Ok((i, y_start, y_end)) = task_rx.recv() {
+                        let r = self.render_rows(world, y_start..y_end);
+                        res_tx.send((i, r)).unwrap();
+                    }
                 });
             }
         });
-        drop(tx);
+        drop(res_tx);
 
-        let mut bathes = rx.iter().collect::<Vec<_>>();
+        let mut bathes = res_rx.iter().collect::<Vec<_>>();
         bathes.sort_by_key(|&(i, _)| i);
         bathes.into_iter().flat_map(|(_, batch)| batch).collect()
     }
 
-    fn render_rows(&self, world: &dyn Hit, rows: Range<usize>) -> Vec<Color> {
+    fn calc_batch_size(&self) -> usize {
+        let magic_coef = 1e9;
+        let batch_count =
+            self.image.height as f64 * self.image.width as f64 * self.max_depth as f64
+                / self.pixel_samples_scale as f64
+                / magic_coef;
+        let batch_count = self.cpu_num.max(next_power_of_two(batch_count));
+        let batch_size = self.image.height / batch_count;
+        batch_size.max(1)
+    }
+
+    fn render_rows(&self, world: &World, rows: Range<usize>) -> Vec<Color> {
         let mut rng = SmallRng::from_rng(&mut rand::rng());
         let height = rows.end - rows.start;
         let mut result = Vec::with_capacity(height * self.image.width);
-        for j in rows {
-            for i in 0..self.image.width {
-                let mut pixel_color = Color::default();
-                for _ in 0..self.samples_per_pixel {
-                    let r = self.get_ray(i, j, &mut rng);
-                    pixel_color += self.ray_color(r, world, self.max_depth);
-                }
-                let color = Self::color_to_8b_format(self.pixel_samples_scale * pixel_color);
-                result.push(color);
+        for (j, i) in iproduct!(rows, 0..self.image.width) {
+            let mut pixel_color = Color::default();
+            for (sj, si) in iproduct!(0..self.sqrt_spp, 0..self.sqrt_spp) {
+                let r = self.get_ray((i, j), (si, sj), &mut rng);
+                pixel_color += self.ray_color(r, world, self.max_depth);
             }
+            let color = Self::color_to_8b_format(self.pixel_samples_scale * pixel_color);
+            result.push(color);
         }
         result
     }
 
-    fn ray_color(&self, r: Ray, world: &dyn Hit, depth: usize) -> Color {
+    fn ray_color(&self, r: Ray, world: &World, depth: usize) -> Color {
         if depth == 0 {
             return Color::new(0., 0., 0.);
         }
@@ -271,19 +295,41 @@ impl Camera {
             return self.background;
         };
 
-        let color_from_emission = rec.material.emitted(rec.u, rec.v, rec.p);
+        let color_from_emission = rec.material.emitted(&r, &rec, rec.u, rec.v, rec.p);
+        let Some(ScatterResult {
+            scattered,
+            attenuation,
+        }) = rec.material.scatter(&r, &rec)
+        else {
+            return color_from_emission;
+        };
 
-        rec.material
-            .scatter(&r, &rec)
-            .map(|(scattered, attenuation)| {
-                let color_from_scatter = attenuation * self.ray_color(scattered, world, depth - 1);
-                color_from_emission + color_from_scatter
-            })
-            .unwrap_or(color_from_emission)
+        let pdf = match scattered {
+            ScatterType::Diffuse { pdf } => pdf,
+            ScatterType::Specular { ray } => {
+                return attenuation * self.ray_color(ray, world, depth - 1);
+            }
+        };
+
+        let lights = world.get_lights();
+        let (scattered, pdf_value) = if lights.is_empty() {
+            let p = pdf.as_ref();
+            compute_pdf(p, rec.p, &r)
+        } else {
+            let light = HitablePdf::new(world.get_lights(), rec.p);
+            let p = MixturePdf::new(&light, pdf.as_ref());
+            compute_pdf(&p, rec.p, &r)
+        };
+
+        let scattering_pdf = rec.material.scattering_pdf(&r, &rec, &scattered);
+
+        let sample_color = self.ray_color(scattered, world, depth - 1);
+        let color_from_scatter = (attenuation * scattering_pdf * sample_color) / pdf_value;
+
+        color_from_emission + color_from_scatter
     }
 
     fn new(
-        pixel_samples_scale: f32,
         pixel_delta_u: Coords,
         pixel_delta_v: Coords,
         pixel00_loc: Coords,
@@ -297,6 +343,10 @@ impl Camera {
         cpu_num: usize,
         background: Color,
     ) -> Self {
+        let sqrt_spp = f32::sqrt(samples_per_pixel as f32) as usize;
+        let pixel_samples_scale = 1.0 / (sqrt_spp as f32 * sqrt_spp as f32);
+        let recip_sqrt_spp = 1.0 / sqrt_spp as f32;
+
         Self {
             pixel_samples_scale,
             pixel_delta_u,
@@ -304,7 +354,8 @@ impl Camera {
             pixel00_loc,
             center,
             image,
-            samples_per_pixel,
+            sqrt_spp,
+            recip_sqrt_spp,
             max_depth,
             defocus_disk_u,
             defocus_disk_v,
@@ -312,5 +363,28 @@ impl Camera {
             cpu_num,
             background,
         }
+    }
+}
+
+fn compute_pdf<T: Pdf + ?Sized>(p: &T, rec_p: Coords, r: &Ray) -> (Ray, f32) {
+    let scattered = Ray::new_timed(rec_p, p.generate(), r.time());
+    let pdf_value = p.value(scattered.direction());
+    (scattered, pdf_value)
+}
+
+fn next_power_of_two(x: f64) -> usize {
+    if x <= 1.0 {
+        return 1;
+    }
+    let n = x.log2();
+    let floor_n = n.floor();
+    let candidate = 2f64.powf(floor_n);
+    let tolerance = 1e-6;
+    if (x - candidate).abs() / candidate < tolerance {
+        candidate as usize
+    } else if candidate < x {
+        2usize.pow((floor_n as u32) + 1)
+    } else {
+        candidate as usize
     }
 }
