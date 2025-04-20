@@ -41,4 +41,10 @@ members = [
     "09_macro/02_proc_macro",
     "10_patterns/01_behavioural",
     "10_patterns/02_creational",
+    "11_linked_lists/01_basic",
+    "11_linked_lists/02_stacks",
+    "11_linked_lists/03_queues",
+    "11_linked_lists/04_queue_unsafe_fail_miri",
+    "11_linked_lists/05_queue_production",
+    "11_linked_lists/06_silly",
 ]

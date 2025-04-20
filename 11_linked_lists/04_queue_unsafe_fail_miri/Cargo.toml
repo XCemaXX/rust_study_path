@@ -1,0 +1,8 @@
+[package]
+name = "linked_lists_fail_unsafe"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "linked_lists_fail_unsafe"
+path = "fifth_bad_miri.rs"

@@ -1,0 +1,8 @@
+[package]
+name = "queue_production"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "queue_production"
+path = "sixth.rs"

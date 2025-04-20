@@ -822,6 +822,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "linked_lists_basic"
+version = "0.1.0"
+
+[[package]]
+name = "linked_lists_fail_unsafe"
+version = "0.1.0"
+
+[[package]]
+name = "linked_lists_queues"
+version = "0.1.0"
+
+[[package]]
+name = "linked_lists_stacks"
+version = "0.1.0"
+
+[[package]]
 name = "links"
 version = "0.1.0"
 
@@ -1220,6 +1236,10 @@ name = "programmable_calculator"
 version = "0.1.0"
 
 [[package]]
+name = "queue_production"
+version = "0.1.0"
+
+[[package]]
 name = "quote"
 version = "1.0.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1585,6 +1605,10 @@ checksum = "d8229b473baa5980ac72ef434c4415e70c4b5e71b423043adb4ba059f89c99a1"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "silly_lists"
+version = "0.1.0"
 
 [[package]]
 name = "simd-adler32"

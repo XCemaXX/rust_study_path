@@ -1,0 +1,12 @@
+[package]
+name = "silly_lists"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "double_ended"
+path = "double_ended.rs"
+
+[[bin]]
+name = "reqursive_on_stack"
+path = "reqursive_on_stack.rs"

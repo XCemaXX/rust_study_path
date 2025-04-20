@@ -1,0 +1,8 @@
+[package]
+name = "linked_lists_stacks"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "linked_lists_stacks"
+path = "main.rs"
