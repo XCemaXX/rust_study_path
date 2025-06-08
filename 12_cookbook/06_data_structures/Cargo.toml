@@ -1,0 +1,11 @@
+[package]
+name = "cook_data_structures"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "cook_bitfield"
+path = "main.rs"
+
+[dependencies]
+bitflags = "2.9.1"

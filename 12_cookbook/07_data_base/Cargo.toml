@@ -1,0 +1,11 @@
+[package]
+name = "cook_database"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "cook_sqlite"
+path = "sqlite.rs"
+
+[dependencies]
+rusqlite = "0.36.0"

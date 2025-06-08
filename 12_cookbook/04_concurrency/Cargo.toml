@@ -1,0 +1,41 @@
+[package]
+name = "cook_concurrency"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "cook_threads"
+path = "threads.rs"
+
+[[bin]]
+name = "cook_lazy_static"
+path = "lazy_static.rs"
+
+[[bin]]
+name = "cook_sha256"
+path = "sha256.rs"
+
+[[bin]]
+name = "cook_fractal"
+path = "fractal.rs"
+
+[[bin]]
+name = "cook_data_par"
+path = "data_par.rs"
+
+[[bin]]
+name = "cook_png_thumbnail"
+path = "png_thumbnail.rs"
+
+[dependencies]
+crossbeam = "0.8.4"
+crossbeam-channel = "0.5.15"
+glob = "0.3.2"
+image = "0.25.6"
+lazy_static = "1.5.0"
+num = "0.4.3"
+num_cpus = "1.17.0"
+rayon = "1.10.0"
+ring = "0.17.14"
+thread-pool = "0.1.1"
+walkdir = "2.5.0"

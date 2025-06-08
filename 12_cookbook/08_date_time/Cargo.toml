@@ -1,0 +1,15 @@
+[package]
+name = "cook_date_time"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "cook_duration"
+path = "duration.rs"
+
+[[bin]]
+name = "cook_date_time"
+path = "date_time.rs"
+
+[dependencies]
+chrono = "0.4.41"
