@@ -1,0 +1,11 @@
+[package]
+name = "cook_hardware"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "cook_cpu"
+path = "cpu.rs"
+
+[dependencies]
+num_cpus = "1.17.0"

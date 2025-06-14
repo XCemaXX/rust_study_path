@@ -1,0 +1,18 @@
+[package]
+name = "cook_file_system"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "cook_files"
+path = "files.rs"
+
+[[bin]]
+name = "cook_folders"
+path = "folders.rs"
+
+[dependencies]
+glob = "0.3.2"
+memmap = "0.7.0"
+same-file = "1.0.6"
+walkdir = "2.5.0"

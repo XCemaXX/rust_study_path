@@ -58,4 +58,10 @@ members = [
     "12_cookbook/09_dev_tools",
     "12_cookbook/109_prebuild",
     "12_cookbook/10_encoding",
+    "12_cookbook/11_error_handling",
+    "12_cookbook/12_file_system",
+    "12_cookbook/13_hardware",
+    "12_cookbook/14_memory",
+    "12_cookbook/15_network",
+    "12_cookbook/16_os",
 ]
