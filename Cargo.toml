@@ -66,4 +66,5 @@ members = [
     "12_cookbook/16_os",
     "12_cookbook/17_science",
     "12_cookbook/18_text_processing",
+    "12_cookbook/19_web",
 ]
