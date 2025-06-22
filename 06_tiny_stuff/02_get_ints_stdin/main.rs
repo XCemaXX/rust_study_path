@@ -1,54 +1,39 @@
 #![allow(dead_code)]
 
-fn get_int<T>() -> T 
-where T: std::str::FromStr,
-    T::Err: std::fmt::Debug
-{
-    let mut buf = String::new();
-    std::io::stdin().read_line(&mut buf).expect("failed to read input.");
-    buf.trim().parse::<T>().expect("invalid input")
+fn get_int<T: std::str::FromStr>() -> T {
+    let mut s = String::new();
+    std::io::stdin().read_line(&mut s).unwrap();
+    s.trim().parse().ok().unwrap()
 }
 
-fn read_vec<T>(n: usize) -> Vec<T>
-where T: std::str::FromStr,
-    T::Err: std::fmt::Debug {
-    let mut buf = String::new();
-    std::io::stdin().read_line(&mut buf).expect("failed to read input.");
-    let mut res: Vec<T> = Vec::with_capacity(n);
-    let divided = buf.trim().split_whitespace();
-    for (i, s) in divided.enumerate() {
-        let num: T = s.trim().parse::<T>().expect("invalid input");
-        res.push(num);
-        if i == n {
-            break;
-        }
-    }
-    res
+fn read_vec<T: std::str::FromStr>(n: usize) -> Vec<T> {
+    let mut s = String::new();
+    std::io::stdin().read_line(&mut s).unwrap();
+    s.split_whitespace()
+        .take(n)
+        .map(|w| w.parse().ok().unwrap())
+        .collect()
 }
 
-fn get_2int<T>() -> (T, T)
-where T: std::str::FromStr,
-    T::Err: std::fmt::Debug
-{
-    let mut buf = String::new();
-    std::io::stdin().read_line(&mut buf).expect("failed to read input.");
-    let mut devided = buf.trim().split_whitespace();
-    let a = devided.next().unwrap().trim().parse::<T>().expect("invalid input");
-    let b = devided.next().unwrap().trim().parse::<T>().expect("invalid input");
-    (a, b)
+fn get_2int<T: std::str::FromStr>() -> (T, T) {
+    let mut s = String::new();
+    std::io::stdin().read_line(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+    (
+        it.next().unwrap().parse().ok().unwrap(),
+        it.next().unwrap().parse().ok().unwrap(),
+    )
 }
 
-fn get_3int<T>() -> (T, T, T)
-where T: std::str::FromStr,
-    T::Err: std::fmt::Debug
-{
-    let mut buf = String::new();
-    std::io::stdin().read_line(&mut buf).expect("failed to read input.");
-    let mut devided = buf.trim().split_whitespace();
-    let a = devided.next().unwrap().trim().parse::<T>().expect("invalid input");
-    let b = devided.next().unwrap().trim().parse::<T>().expect("invalid input");
-    let c = devided.next().unwrap().trim().parse::<T>().expect("invalid input");
-    (a, b, c)
+fn get_3int<T: std::str::FromStr>() -> (T, T, T) {
+    let mut s = String::new();
+    std::io::stdin().read_line(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+    (
+        it.next().unwrap().parse().ok().unwrap(),
+        it.next().unwrap().parse().ok().unwrap(),
+        it.next().unwrap().parse().ok().unwrap(),
+    )
 }
 
 fn main() {
