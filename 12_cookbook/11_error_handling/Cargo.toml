@@ -1,0 +1,16 @@
+[package]
+name = "cook_error_handling"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "cook_errors"
+path = "errors.rs"
+
+[[bin]]
+name = "cook_error_chain"
+path = "error_chain.rs"
+
+[dependencies]
+anyhow = "1.0.98"
+thiserror = "2.0.12"

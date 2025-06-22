@@ -1,0 +1,12 @@
+[package]
+name = "cook_tar"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "cook_tar"
+path = "main.rs"
+
+[dependencies]
+flate2 = "1.1.1"
+tar = "0.4.44"

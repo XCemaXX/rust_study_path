@@ -1,0 +1,17 @@
+[package]
+name = "cook_cmd_line"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "cook_cmd"
+path = "cmd.rs"
+
+[[bin]]
+name = "cook_ansi"
+path = "ansi.rs"
+
+
+[dependencies]
+ansi_term = "0.12.1"
+clap = "4.5.38"

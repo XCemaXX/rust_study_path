@@ -1,0 +1,8 @@
+[package]
+name = "cook_network"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "cook_server"
+path = "server.rs"

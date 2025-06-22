@@ -1,0 +1,16 @@
+[package]
+name = "cook_cryptography"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "cook_hashing"
+path = "hashing.rs"
+
+
+[[bin]]
+name = "cook_encryption"
+path = "encryption.rs"
+
+[dependencies]
+ring = "0.17.14"

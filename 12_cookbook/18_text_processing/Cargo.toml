@@ -1,0 +1,16 @@
+[package]
+name = "cook_text_processing"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "cook_regex"
+path = "regex.rs"
+
+[[bin]]
+name = "cook_parsing"
+path = "parsing.rs"
+
+[dependencies]
+regex = "1.11.1"
+unicode-segmentation = "1.12.0"

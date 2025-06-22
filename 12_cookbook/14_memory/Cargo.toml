@@ -1,0 +1,11 @@
+[package]
+name = "cook_memory"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "cook_global_static"
+path = "global_static.rs"
+
+[dependencies]
+lazy_static = "1.5.0"

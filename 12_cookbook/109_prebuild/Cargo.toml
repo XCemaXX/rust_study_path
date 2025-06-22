@@ -1,0 +1,12 @@
+[package]
+name = "cook_prebuild"
+version = "0.1.123"
+edition = "2024"
+build = "build.rs"
+
+[[bin]]
+name = "cook_prebuild"
+path = "main.rs"
+
+[build-dependencies]
+cc = "1.2.26"
