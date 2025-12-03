@@ -1,4 +1,3 @@
-default rel
 global _start
 section .text
 

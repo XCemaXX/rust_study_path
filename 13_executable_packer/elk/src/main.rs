@@ -14,12 +14,37 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("{file:#?}");
 
     println!("Disassembling {input_path:?}...");
-    let code_ph = file
+    let _code_ph = file
         .program_headers
         .iter()
         .find(|ph| ph.mem_range().contains(&file.entry_point))
         .expect("segment with entry point not found");
     // ndisasm(&code_ph.data[..], file.entry_point)?;
+
+    println!("Dynamic entries:");
+    if let Some(ds) = file
+        .program_headers
+        .iter()
+        .find(|ph| ph.r#type == delf::SegmentType::Dynamic)
+    {
+        if let delf::SegmentContents::Dynamic(table) = &ds.contents {
+            for entry in table {
+                println!(" - {entry:?}");
+            }
+        }
+    }
+
+    println!("Rela entries:");
+    let rela_entries = file.read_rela_entries().unwrap_or_else(|e| {
+        println!("Could not read relocations: {e:?}");
+        Default::default()
+    });
+    for e in &rela_entries {
+        println!("{e:#?}");
+        if let Some(seg) = file.segment_at(e.offset) {
+            println!("... for {seg:#?}");
+        }
+    }
 
     // picked by fair 4KiB-aligned dice roll
     let base = 0x400000_usize;
@@ -51,6 +76,36 @@ fn main() -> Result<(), Box<dyn Error>> {
             let dst = unsafe { std::slice::from_raw_parts_mut(addr.add(padding), ph.data.len()) };
             dst.copy_from_slice(&ph.data[..]);
         }
+
+        println!("Applying relocations (if any)...");
+        for reloc in &rela_entries {
+            if !mem_range.contains(&reloc.offset) {
+                continue;
+            }
+            unsafe {
+                let real_segment_start = addr.add(padding);
+
+                let specified_reloc_offset = reloc.offset;
+                let specified_segment_start = mem_range.start;
+                let offset_into_segment = specified_reloc_offset - specified_segment_start;
+
+                println!(
+                    "Applying {:?} relocation @ {:?} from segment start",
+                    reloc.r#type, offset_into_segment
+                );
+                let reloc_addr: *mut u64 =
+                    std::mem::transmute(real_segment_start.add(offset_into_segment.into()));
+                match reloc.r#type {
+                    delf::RelType::Relative => {
+                        let reloc_value = reloc.addend + delf::Addr(base as u64);
+                        println!("Replacing with value {reloc_value:?}");
+                        std::ptr::write_unaligned(reloc_addr, reloc_value.0);
+                    }
+                    t => panic!("Unsupported relocation type {t:?}"),
+                }
+            }
+        }
+
         println!("Adjusting permissions...");
         let mut protection = Protection::NONE;
         for flag in ph.flags.iter() {
@@ -94,7 +149,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn ndisasm(code: &[u8], origin: delf::Addr) -> Result<(), Box<dyn Error>> {
+fn _ndisasm(code: &[u8], origin: delf::Addr) -> Result<(), Box<dyn Error>> {
     use std::{
         io::Write,
         process::{Command, Stdio},

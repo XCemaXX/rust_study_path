@@ -1,14 +1,17 @@
+mod enums;
 mod parse;
 
 use std::{fmt, ops::Range};
 
+pub use crate::enums::*;
 use derive_more::*;
 use enumflags2::BitFlags;
 use nom::{
-    Offset as _, Parser as _, combinator,
+    Offset as _, Parser as _,
+    combinator::{self, verify},
+    error, multi,
     number::complete::{le_u16, le_u32, le_u64},
 };
-use num_enum::TryFromPrimitive;
 
 #[derive(Debug)]
 pub struct File {
@@ -86,26 +89,51 @@ impl File {
             Err(_) => panic!("unexpected nom error"),
         }
     }
-}
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, TryFromPrimitive)]
-#[repr(u16)]
-pub enum Type {
-    None = 0x0,
-    Rel = 0x1,
-    Exec = 0x2,
-    Dyn = 0x3,
-    Core = 0x4,
-}
-impl_parse_for_enum!(Type, le_u16);
+    pub fn segment_at(&self, addr: Addr) -> Option<&ProgramHeader> {
+        self.program_headers
+            .iter()
+            .filter(|ph| ph.r#type == SegmentType::Load)
+            .find(|ph| ph.mem_range().contains(&addr))
+    }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, TryFromPrimitive)]
-#[repr(u16)]
-pub enum Machine {
-    X86 = 0x03,
-    X86_64 = 0x3e,
+    pub fn segment_of_type(&self, r#type: SegmentType) -> Option<&ProgramHeader> {
+        self.program_headers.iter().find(|ph| ph.r#type == r#type)
+    }
+
+    pub fn dynamic_entry(&self, tag: DynamicTag) -> Option<Addr> {
+        match self.segment_of_type(SegmentType::Dynamic) {
+            Some(ProgramHeader {
+                contents: SegmentContents::Dynamic(entries),
+                ..
+            }) => entries.iter().find(|e| e.tag == tag).map(|e| e.addr),
+            _ => None,
+        }
+    }
+
+    pub fn read_rela_entries(&self) -> Result<Vec<Rela>, ReadRelaError> {
+        use DynamicTag as DT;
+        use ReadRelaError as E;
+
+        let addr = self.dynamic_entry(DT::Rela).ok_or(E::RelaNotFound)?;
+        let len = self.dynamic_entry(DT::RelaSz).ok_or(E::RelaSzNotFound)?;
+        let seg = self.segment_at(addr).ok_or(E::RelaSegmentNotFound)?;
+
+        let i = &seg.data[(addr - seg.mem_range().start).into()..][..len.into()];
+        match multi::many0(Rela::parse).parse(i) {
+            Ok((_, rela_entires)) => Ok(rela_entires),
+            Err(nom::Err::Error(err)) | Err(nom::Err::Failure(err)) => {
+                let error_kind = err.code;
+                Err(E::ParsingError(error_kind))
+            }
+            _ => {
+                unreachable!(
+                    r#"we don't use any "streaming" parsers, so `nom::Err::Incomplete` seems unlikely"#
+                )
+            }
+        }
+    }
 }
-impl_parse_for_enum!(Machine, le_u16);
 
 pub struct ProgramHeader {
     pub r#type: SegmentType,
@@ -117,6 +145,7 @@ pub struct ProgramHeader {
     pub memsz: Addr,
     pub align: Addr,
     pub data: Vec<u8>,
+    pub contents: SegmentContents,
 }
 
 impl ProgramHeader {
@@ -128,12 +157,27 @@ impl ProgramHeader {
         self.vaddr..self.vaddr + self.memsz
     }
 
-    fn parse<'a>(full_input: parse::Input<'_>, i: parse::Input<'a>) -> parse::Result<'a, Self> {
+    fn parse<'a>(full_input: &'a [u8], i: parse::Input<'a>) -> parse::Result<'a, Self> {
+        //fn parse<'a>(full_input: parse::Input<'_>, i: parse::Input<'a>) -> parse::Result<'a, Self> {
         let (i, (r#type, flags)) = (SegmentType::parse, SegmentFlag::parse).parse(i)?;
 
         let ap = Addr::parse;
         let (i, (offset, vaddr, paddr, filesz, memsz, align)) =
             (ap, ap, ap, ap, ap, ap).parse(i)?;
+
+        let slice = &full_input[offset.into()..][..filesz.into()];
+        let (_, contents) = match r#type {
+            SegmentType::Dynamic => combinator::map(
+                multi::many_till(
+                    DynamicEntry::parse,
+                    verify(DynamicEntry::parse, |e| e.tag == DynamicTag::Null),
+                ),
+                |(entries, _last)| SegmentContents::Dynamic(entries),
+            )
+            .parse(slice)?,
+            _ => (slice, SegmentContents::Unknown),
+        };
+
         let res = Self {
             r#type,
             flags,
@@ -144,6 +188,7 @@ impl ProgramHeader {
             memsz,
             align,
             data: full_input[offset.into()..][..filesz.into()].to_vec(),
+            contents,
         };
         Ok((i, res))
     }
@@ -177,38 +222,59 @@ impl fmt::Debug for ProgramHeader {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, TryFromPrimitive)]
-#[repr(u32)]
-pub enum SegmentType {
-    Null = 0x0,
-    Load = 0x1,
-    Dynamic = 0x2,
-    Interp = 0x3,
-    Note = 0x4,
-    ShLib = 0x5,
-    PHdr = 0x6,
-    TLS = 0x7,
-    LoOS = 0x6000_0000,
-    HiOS = 0x6FFF_FFFF,
-    LoProc = 0x7000_0000,
-    HiProc = 0x7FFF_FFFF,
-    GnuEhFrame = 0x6474_E550,
-    GnuStack = 0x6474_E551,
-    GnuRelRo = 0x6474_E552,
-    GnuProperty = 0x6474_E553,
-}
-impl_parse_for_enum!(SegmentType, le_u32);
-
-#[enumflags2::bitflags]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u32)]
-pub enum SegmentFlag {
-    Execute = 0x1,
-    Write = 0x2,
-    Read = 0x4,
+#[derive(Debug)]
+pub enum SegmentContents {
+    Dynamic(Vec<DynamicEntry>),
+    Unknown,
 }
 
-impl_parse_for_enumflags!(SegmentFlag, le_u32);
+#[derive(Debug)]
+pub struct DynamicEntry {
+    pub tag: DynamicTag,
+    pub addr: Addr,
+}
+
+impl DynamicEntry {
+    fn parse(i: parse::Input) -> parse::Result<Self> {
+        let (i, (tag, addr)) = (DynamicTag::parse, Addr::parse).parse(i)?;
+        Ok((i, Self { tag, addr }))
+    }
+}
+
+#[derive(Debug)]
+pub struct Rela {
+    pub offset: Addr,
+    pub r#type: RelType,
+    pub sym: u32,
+    pub addend: Addr,
+}
+
+impl Rela {
+    pub fn parse(i: parse::Input) -> parse::Result<Self> {
+        combinator::map(
+            (Addr::parse, RelType::parse, le_u32, Addr::parse),
+            |(offset, r#type, sym, addend)| Rela {
+                offset,
+                r#type,
+                sym,
+                addend,
+            },
+        )
+        .parse(i)
+    }
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum ReadRelaError {
+    #[error("Rela dynamic entry not found")]
+    RelaNotFound,
+    #[error("RelaSz dynamic entry not found")]
+    RelaSzNotFound,
+    #[error("RelaSegmentNotFound dynamic entry not found")]
+    RelaSegmentNotFound,
+    #[error("Parsing error")]
+    ParsingError(error::ErrorKind), // hm
+}
 
 pub struct HexDump<'a>(&'a [u8]);
 
