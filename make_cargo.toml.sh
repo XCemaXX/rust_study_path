@@ -6,6 +6,7 @@ echo "members = [" >> Cargo.toml
 
 find . -maxdepth 2 -mindepth 2 -type d \
     | grep -v -e "./.git" -e "./target/" -e "./*/rustc*" \
+              -e "13_executable_packer/samples" \
     | cut -c3- \
     | sort \
     | xargs printf '    "%s",\n' >> Cargo.toml
