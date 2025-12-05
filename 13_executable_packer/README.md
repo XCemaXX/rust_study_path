@@ -15,6 +15,10 @@ nasm -f elf64 hello-pie.asm
 ld -pie hello-pie.o -o hello-pie
 
 ld --dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie samples/hello.o -o samples/hello-mov-pie
+
+ld --dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie samples/hello-dl.o samples/msg.o -o samples/hello-dl
+ld -shared samples/msg.o -o samples/libmsg.so
+ld --dynamic-linker /lib64/ld-linux-x86-64.so.2 -rpath '$ORIGIN' -pie samples/hello-dl.o -L samples -lmsg -o samples/hello-dl
 ```
 
 Useful commands to run:

@@ -17,6 +17,38 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("Could not read relocations: {e:?}");
         Default::default()
     });
+    println!("Found {} rela entries", rela_entries.len());
+    for entry in &rela_entries {
+        println!("{entry:?}");
+    }
+
+    if let Some(dynseg) = file.segment_of_type(delf::SegmentType::Dynamic) {
+        if let delf::SegmentContents::Dynamic(dyntab) = &dynseg.contents {
+            println!("Dynamic table entries:");
+            for e in dyntab {
+                println!("{e:?}");
+                match e.tag {
+                    delf::DynamicTag::Needed | delf::DynamicTag::RunPath => {
+                        println!(" => {:?}", file.get_string(e.addr)?);
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+
+    if let Some(entries) = file.dynamic_table() {
+        for e in entries {
+            println!("{e:?}");
+        }
+    }
+
+    for sh in &file.section_headers {
+        println!("{sh:?}");
+    }
+
+    print_symbols(&file);
+
     let base = 0x400000_usize;
 
     println!("Loading with base address @ 0x{base:x}");
@@ -59,14 +91,19 @@ fn main() -> Result<(), Box<dyn Error>> {
                 let reloc_addr = real_segment_start.add(offset_into_segment.into());
 
                 match reloc.r#type {
-                    delf::RelType::Relative => {
+                    delf::RelType::Known(delf::KnownRelType::Relative) => {
                         // this assumes `reloc_addr` is 8-byte aligned. if this isn't
                         // the case, we would crash, and so would the target executable
                         let reloc_addr: *mut u64 = std::mem::transmute(reloc_addr);
                         let reloc_value = reloc.addend + delf::Addr(base as u64);
                         std::ptr::write_unaligned(reloc_addr, reloc_value.0);
                     }
-                    t => panic!("Unsupported relocation type {t:?}"),
+                    delf::RelType::Known(t) => {
+                        panic!("Unsupported known relocation type {t:?}")
+                    }
+                    delf::RelType::Unknown(t) => {
+                        println!("Unknown rel_type {t}")
+                    }
                 }
             }
         }
@@ -101,4 +138,38 @@ unsafe fn jmp(addr: *const u8) {
 
 fn align_lo(x: usize) -> usize {
     x & !0xFFF
+}
+
+fn print_symbols(file: &delf::File) {
+    let syms = file.read_syms().unwrap();
+    println!(
+        "Symbol table @ {:?} containes {} entries",
+        file.dynamic_entry(delf::DynamicTag::SymTab).unwrap(),
+        syms.len()
+    );
+    println!(
+        "  {:6}{:12}{:10}{:16}{:16}{:12}{:12}",
+        "Num", "Value", "Size", "Type", "Bind", "Ndx", "Name"
+    );
+    for (num, s) in syms.iter().enumerate() {
+        println!(
+            "  {:6}{:12}{:10}{:16}{:16}{:12}{:12}",
+            format!("{}", num),
+            format!("{:?}", s.value),
+            format!("{:?}", s.size),
+            format!("{:?}", s.r#type),
+            format!("{:?}", s.bind),
+            format!("{:?}", s.shndx),
+            format!("{}", file.get_string(s.name).unwrap_or_default()),
+        );
+    }
+
+    // temp for libmsg.so
+    let msg = syms
+        .iter()
+        .find(|sym| file.get_string(sym.name).unwrap_or_default() == "msg")
+        .expect("should find msg in symbol table");
+    let msg_slice = file.slice_at(msg.value).expect("should find msg in memory");
+    let msg_slice = &msg_slice[..msg.size as usize];
+    println!("msg contents: {:?}", String::from_utf8_lossy(msg_slice));
 }
