@@ -6,7 +6,7 @@ mod sym;
 use std::{fmt, ops::Range};
 
 pub use crate::{enums::*, rela::*, sym::*};
-use derive_more::*;
+use derive_more::{Add, Sub};
 use enumflags2::BitFlags;
 use nom::{
     Parser as _, branch,
