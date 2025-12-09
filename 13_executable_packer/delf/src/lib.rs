@@ -425,6 +425,20 @@ impl Into<usize> for Addr {
 }
 
 impl Addr {
+    /// # Safety
+    ///
+    /// This can create dangling pointers
+    pub unsafe fn as_ptr<T>(&self) -> *const T {
+        unsafe { std::mem::transmute(self.0 as usize) }
+    }
+
+    /// # Safety
+    ///
+    /// This can create dangling pointers
+    pub unsafe fn as_mut_ptr<T>(&self) -> *mut T {
+        unsafe { std::mem::transmute(self.0 as usize) }
+    }
+
     pub fn parse(i: parse::Input) -> parse::Result<Self> {
         combinator::map(le_u64, From::from).parse(i)
     }

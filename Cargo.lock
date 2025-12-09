@@ -918,6 +918,7 @@ version = "0.1.0"
 dependencies = [
  "delf",
  "derive_more 2.1.0",
+ "enumflags2",
  "mmap",
  "region",
  "thiserror 2.0.17",
