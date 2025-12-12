@@ -1,8 +1,6 @@
 use num_enum::TryFromPrimitive;
 
-use nom::Parser as _;
-
-use crate::{impl_parse_for_enum, impl_parse_for_enumflags, parse};
+use crate::{impl_parse_for_bitenum, impl_parse_for_enum, impl_parse_for_enumflags, parse};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, TryFromPrimitive)]
 #[repr(u16)]
@@ -109,19 +107,19 @@ impl_parse_for_enum!(DynamicTag, le_u64);
 
 #[derive(Debug, TryFromPrimitive, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
-pub enum KnownRelType {
-    // None = 0,
+pub enum RelType {
+    None = 0,
     _64 = 1,
-    // Pc32 = 2,
-    // Got32 = 3,
-    // Plt32 = 4,
+    Pc32 = 2,
+    Got32 = 3,
+    Plt32 = 4,
     Copy = 5,
     GlobDat = 6,
     JumpSlot = 7,
     Relative = 8,
 }
 
-impl_parse_for_enum!(KnownRelType, le_u32);
+impl_parse_for_enum!(RelType, le_u32);
 
 #[derive(Debug, TryFromPrimitive, Clone, Copy)]
 #[repr(u8)]
@@ -131,14 +129,7 @@ pub enum SymBind {
     Weak = 2,
 }
 
-impl SymBind {
-    pub fn parse(i: parse::BitInput) -> parse::BitResult<Option<Self>> {
-        nom::combinator::map(nom::bits::complete::take(4_usize), |i: u8| {
-            Self::try_from(i).ok()
-        })
-        .parse(i)
-    }
-}
+impl_parse_for_bitenum!(SymBind, 4_usize);
 
 #[derive(Debug, TryFromPrimitive, Clone, Copy)]
 #[repr(u8)]
@@ -149,11 +140,4 @@ pub enum SymType {
     Section = 3,
 }
 
-impl SymType {
-    pub fn parse(i: parse::BitInput) -> parse::BitResult<Option<Self>> {
-        nom::combinator::map(nom::bits::complete::take(4_usize), |i: u8| {
-            Self::try_from(i).ok()
-        })
-        .parse(i)
-    }
-}
+impl_parse_for_bitenum!(SymType, 4_usize);

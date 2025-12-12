@@ -1,20 +1,16 @@
 use std::fmt;
 
-use crate::{
-    Addr,
-    enums::*,
-    parse::{self, ErrorKind},
-};
+use crate::{Addr, GetDynamicEntryError, enums::*, parse};
 use nom::{
     Parser as _, combinator,
     number::complete::{le_u8, le_u16, le_u32, le_u64},
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Sym {
     pub name: Addr,
-    pub bind: Option<SymBind>,
-    pub r#type: Option<SymType>,
+    pub bind: SymBind,
+    pub r#type: SymType,
     pub shndx: SectionIndex,
     pub value: Addr,
     pub size: u64,
@@ -78,12 +74,12 @@ impl fmt::Debug for SectionIndex {
 
 #[derive(thiserror::Error, Debug)]
 pub enum ReadSymsError {
-    #[error("SymTab dynamic entry not found")]
-    SymTabNotFound,
+    #[error("{0:?}")]
+    DynamicEntryNotFound(#[from] GetDynamicEntryError),
     #[error("SymTab section not found")]
     SymTabSectionNotFound,
     #[error("SymTab segment not found")]
     SymTabSegmentNotFound,
-    #[error("Parsing error")]
-    ParsingError(ErrorKind),
+    #[error("Parsing error: {0}")]
+    ParsingError(String),
 }

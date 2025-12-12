@@ -1,17 +1,12 @@
+mod addr;
 mod enums;
 mod parse;
-mod rela;
+mod program_header;
 mod sym;
 
-use std::{fmt, ops::Range};
-
-pub use crate::{enums::*, rela::*, sym::*};
-use derive_more::{Add, Sub};
-use enumflags2::BitFlags;
+pub use crate::{addr::*, enums::*, program_header::*, sym::*};
 use nom::{
-    Parser as _, branch,
-    combinator::{self, verify},
-    multi,
+    Parser as _, branch, combinator, multi,
     number::complete::{le_u16, le_u32, le_u64},
 };
 
@@ -149,26 +144,26 @@ impl File {
         use DynamicTag as DT;
         use ReadRelaError as E;
 
-        let addr = self.dynamic_entry(DT::Rela).ok_or(E::RelaNotFound)?;
-        let len = self.dynamic_entry(DT::RelaSz).ok_or(E::RelaSzNotFound)?;
-        let ent = self.dynamic_entry(DT::RelaEnt).ok_or(E::RelaEntNotFound)?;
+        match self.dynamic_entry(DT::Rela) {
+            None => Ok(Vec::new()),
+            Some(addr) => {
+                let len = self.get_dynamic_entry(DT::RelaSz)?;
 
-        let i = self.slice_at(addr).ok_or(E::RelaSegmentNotFound)?;
-        let i = &i[..len.into()];
+                let i = self.slice_at(addr).ok_or(E::RelaSegmentNotFound)?;
+                let i = &i[..len.into()];
+                let n = len.0 as usize / Rela::SIZE;
 
-        let n = (len.0 / ent.0) as usize;
-
-        match multi::many_m_n(n, n, Rela::parse).parse(i) {
-            Ok((_, rela_entires)) => Ok(rela_entires),
-            Err(nom::Err::Error(err)) | Err(nom::Err::Failure(err)) => {
-                let e = &err.errors[0];
-                let error_kind = &e.1;
-                Err(E::ParsingError(error_kind.clone()))
-            }
-            _ => {
-                unreachable!(
-                    r#"we don't use any "streaming" parsers, so `nom::Err::Incomplete` seems unlikely"#
-                )
+                match multi::many_m_n(n, n, Rela::parse).parse(i) {
+                    Ok((_, rela_entires)) => Ok(rela_entires),
+                    Err(nom::Err::Error(err)) | Err(nom::Err::Failure(err)) => {
+                        Err(E::ParsingError(format!("{err:?}")))
+                    }
+                    _ => {
+                        unreachable!(
+                            r#"we don't use any "streaming" parsers, so `nom::Err::Incomplete` seems unlikely"#
+                        )
+                    }
+                }
             }
         }
     }
@@ -201,7 +196,7 @@ impl File {
         use DynamicTag as DT;
         use ReadSymsError as E;
 
-        let addr = self.dynamic_entry(DT::SymTab).ok_or(E::SymTabNotFound)?;
+        let addr = self.get_dynamic_entry(DT::SymTab)?;
         let section = self
             .section_starting_at(addr)
             .ok_or(E::SymTabSectionNotFound)?;
@@ -212,9 +207,7 @@ impl File {
         match multi::many_m_n(n, n, Sym::parse).parse(i) {
             Ok((_, syms)) => Ok(syms),
             Err(nom::Err::Error(err)) | Err(nom::Err::Failure(err)) => {
-                let e = &err.errors[0];
-                let error_kind = &e.1;
-                Err(E::ParsingError(error_kind.clone()))
+                Err(E::ParsingError(format!("{err:?}")))
             }
             _ => {
                 unreachable!(
@@ -223,99 +216,11 @@ impl File {
             }
         }
     }
-}
 
-pub struct ProgramHeader {
-    pub r#type: SegmentType,
-    pub flags: BitFlags<SegmentFlag>,
-    pub offset: Addr,
-    pub vaddr: Addr,
-    pub paddr: Addr,
-    pub filesz: Addr,
-    pub memsz: Addr,
-    pub align: Addr,
-    pub data: Vec<u8>,
-    pub contents: SegmentContents,
-}
-
-impl ProgramHeader {
-    pub fn file_range(&self) -> Range<Addr> {
-        self.offset..self.offset + self.filesz
+    pub fn get_dynamic_entry(&self, tag: DynamicTag) -> Result<Addr, GetDynamicEntryError> {
+        self.dynamic_entry(tag)
+            .ok_or(GetDynamicEntryError::NotFound(tag))
     }
-
-    pub fn mem_range(&self) -> Range<Addr> {
-        self.vaddr..self.vaddr + self.memsz
-    }
-
-    fn parse<'a>(full_input: &'a [u8], i: parse::Input<'a>) -> parse::Result<'a, Self> {
-        //fn parse<'a>(full_input: parse::Input<'_>, i: parse::Input<'a>) -> parse::Result<'a, Self> {
-        let (i, (r#type, flags)) = (SegmentType::parse, SegmentFlag::parse).parse(i)?;
-
-        let ap = Addr::parse;
-        let (i, (offset, vaddr, paddr, filesz, memsz, align)) =
-            (ap, ap, ap, ap, ap, ap).parse(i)?;
-
-        let slice = &full_input[offset.into()..][..filesz.into()];
-        let (_, contents) = match r#type {
-            SegmentType::Dynamic => combinator::map(
-                multi::many_till(
-                    DynamicEntry::parse,
-                    verify(DynamicEntry::parse, |e| e.tag == DynamicTag::Null),
-                ),
-                |(entries, _last)| SegmentContents::Dynamic(entries),
-            )
-            .parse(slice)?,
-            _ => (slice, SegmentContents::Unknown),
-        };
-
-        let res = Self {
-            r#type,
-            flags,
-            offset,
-            vaddr,
-            paddr,
-            filesz,
-            memsz,
-            align,
-            data: full_input[offset.into()..][..filesz.into()].to_vec(),
-            contents,
-        };
-        Ok((i, res))
-    }
-}
-
-impl fmt::Debug for ProgramHeader {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "file {:?} | mem {:?} | align {:?} | {} {:?}",
-            self.file_range(),
-            self.mem_range(),
-            self.align,
-            &[
-                (SegmentFlag::Read, "R"),
-                (SegmentFlag::Write, "W"),
-                (SegmentFlag::Execute, "X")
-            ]
-            .iter()
-            .map(|&(flag, letter)| {
-                if self.flags.contains(flag) {
-                    letter
-                } else {
-                    "."
-                }
-            })
-            .collect::<Vec<_>>()
-            .join(""),
-            self.r#type,
-        )
-    }
-}
-
-#[derive(Debug)]
-pub enum SegmentContents {
-    Dynamic(Vec<DynamicEntry>),
-    Unknown,
 }
 
 #[derive(Debug)]
@@ -329,6 +234,46 @@ impl DynamicEntry {
         let (i, (tag, addr)) = (DynamicTag::parse, Addr::parse).parse(i)?;
         Ok((i, Self { tag, addr }))
     }
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum GetDynamicEntryError {
+    #[error("Dynamic entry {0:?} not found")]
+    NotFound(DynamicTag),
+}
+
+#[derive(Debug)]
+pub struct Rela {
+    pub offset: Addr,
+    pub r#type: RelType,
+    pub sym: u32,
+    pub addend: Addr,
+}
+
+impl Rela {
+    pub const SIZE: usize = 24;
+    pub fn parse(i: parse::Input) -> parse::Result<Self> {
+        combinator::map(
+            (Addr::parse, RelType::parse, le_u32, Addr::parse),
+            |(offset, r#type, sym, addend)| Rela {
+                offset,
+                r#type,
+                sym,
+                addend,
+            },
+        )
+        .parse(i)
+    }
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum ReadRelaError {
+    #[error("{0}")]
+    DynamicEntryNotFound(#[from] GetDynamicEntryError),
+    #[error("Rela segment not found")]
+    RelaSegmentNotFound,
+    #[error("Parsing error: {0}")]
+    ParsingError(String),
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -394,53 +339,6 @@ impl<'a> std::fmt::Debug for HexDump<'a> {
             write!(f, "{x:02x} ")?;
         }
         Ok(())
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Add, Sub)]
-pub struct Addr(pub u64);
-
-impl fmt::Debug for Addr {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:08x}", self.0)
-    }
-}
-
-impl fmt::Display for Addr {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Debug::fmt(self, f)
-    }
-}
-
-impl From<u64> for Addr {
-    fn from(value: u64) -> Self {
-        Self(value)
-    }
-}
-
-impl Into<usize> for Addr {
-    fn into(self) -> usize {
-        self.0 as usize
-    }
-}
-
-impl Addr {
-    /// # Safety
-    ///
-    /// This can create dangling pointers
-    pub unsafe fn as_ptr<T>(&self) -> *const T {
-        unsafe { std::mem::transmute(self.0 as usize) }
-    }
-
-    /// # Safety
-    ///
-    /// This can create dangling pointers
-    pub unsafe fn as_mut_ptr<T>(&self) -> *mut T {
-        unsafe { std::mem::transmute(self.0 as usize) }
-    }
-
-    pub fn parse(i: parse::Input) -> parse::Result<Self> {
-        combinator::map(le_u64, From::from).parse(i)
     }
 }
 

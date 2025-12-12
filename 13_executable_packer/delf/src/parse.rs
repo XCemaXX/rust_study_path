@@ -2,17 +2,35 @@
 macro_rules! impl_parse_for_enum {
     ($type: ident, $number_parser: ident) => {
         impl $type {
-            pub fn parse(i: parse::Input) -> parse::Result<Self> {
-                use nom::{
-                    Parser,
-                    combinator::map_res,
-                    error::{ErrorKind, context},
-                    number::complete::$number_parser,
-                };
-                let parser = map_res($number_parser, |x| {
-                    Self::try_from(x).map_err(|_| ErrorKind::Alt)
-                });
-                context(stringify!($type), parser).parse(i)
+            pub fn parse(full_input: parse::Input) -> parse::Result<Self> {
+                use nom::number::complete::$number_parser;
+                let (i, val) = $number_parser(full_input)?;
+                match Self::try_from(val) {
+                    Ok(val) => Ok((i, val)),
+                    Err(_) => Err(nom::Err::Failure(parse::Error::from_string(
+                        full_input,
+                        format!("Unknown {} {} (0x{:x})", stringify!($type), val, val),
+                    ))),
+                }
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! impl_parse_for_bitenum {
+    ($type: ident, $bits: expr) => {
+        impl $type {
+            pub fn parse(full_input: parse::BitInput) -> parse::BitResult<Self> {
+                use nom::bits::complete::take;
+                let (i, val): (_, u8) = take($bits)(full_input)?;
+                match Self::try_from(val) {
+                    Ok(val) => Ok((i, val)),
+                    Err(_) => Err(nom::Err::Failure(parse::Error::from_string(
+                        full_input,
+                        format!("Unknown {} {} (0x{:x})", stringify!($type), val, val),
+                    ))),
+                }
             }
         }
     };
@@ -42,6 +60,7 @@ macro_rules! impl_parse_for_enumflags {
 pub enum ErrorKind {
     Nom(nom::error::ErrorKind),
     Context(&'static str),
+    String(String),
 }
 
 pub struct Error<I> {
@@ -93,5 +112,22 @@ impl<I> nom::error::FromExternalError<I, nom::error::ErrorKind> for Error<I> {
     ) -> Self {
         let errors = vec![(input, ErrorKind::Nom(e))]; //, (input, e)
         Error { errors }
+    }
+}
+
+impl std::fmt::Debug for Error<&[u8]> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for (input, err) in &self.errors {
+            writeln!(f, "{err:?}")?;
+            writeln!(f, "input: {:?}", crate::HexDump(input))?;
+        }
+        Ok(())
+    }
+}
+
+impl<I> Error<I> {
+    pub fn from_string<S: Into<String>>(input: I, s: S) -> Self {
+        let errors = vec![(input, ErrorKind::String(s.into()))];
+        Self { errors }
     }
 }
