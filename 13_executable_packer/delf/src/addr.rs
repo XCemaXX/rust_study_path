@@ -25,41 +25,52 @@ impl From<u64> for Addr {
     }
 }
 
-impl Into<usize> for Addr {
-    fn into(self) -> usize {
-        self.0 as usize
+impl From<Addr> for usize {
+    fn from(value: Addr) -> Self {
+        value.0 as usize
     }
 }
 
 impl Addr {
     /// # Safety
-    ///
-    /// This can create dangling pointers
+    /// `self` must be a valid, properly aligned pointer to `T`
+    /// that is alive for the returned lifetime.
     pub unsafe fn as_ptr<T>(&self) -> *const T {
-        unsafe { std::mem::transmute(self.0 as usize) }
+        self.0 as usize as *const T
     }
 
     /// # Safety
-    ///
-    /// This can create dangling pointers
+    /// Same as `as_ptr`, and no other references to the pointed
+    /// memory may exist for the duration of the borrow.
     pub unsafe fn as_mut_ptr<T>(&self) -> *mut T {
-        unsafe { std::mem::transmute(self.0 as usize) }
+        self.0 as usize as *mut T
     }
 
+    /// # Safety
+    /// `self` must point to `len` contiguous, properly aligned `T`s
+    /// valid for the returned lifetime.
     pub unsafe fn as_slice<T>(&self, len: usize) -> &[T] {
         unsafe { std::slice::from_raw_parts(self.as_ptr(), len) }
     }
 
+    /// # Safety
+    /// Same as `as_slice`, and no other references to the memory
+    /// may exist for the duration of the borrow.
     pub unsafe fn as_mut_slice<T>(&mut self, len: usize) -> &mut [T] {
         unsafe { std::slice::from_raw_parts_mut(self.as_mut_ptr(), len) }
     }
 
+    /// # Safety
+    /// `self` must point to at least `src.len()` writable bytes,
+    /// and the regions must not overlap.
     pub unsafe fn write(&self, src: &[u8]) {
         unsafe {
             std::ptr::copy_nonoverlapping(src.as_ptr(), self.as_mut_ptr(), src.len());
         }
     }
 
+    /// # Safety
+    /// `self` must point to valid writable memory for `T`.
     pub unsafe fn set<T>(&self, src: T) {
         unsafe {
             std::ptr::write_unaligned(self.as_mut_ptr(), src);

@@ -7,6 +7,7 @@ nasm -f elf64 hello.asm
 ld hello.o -o hello
 
 gcc samples/entry_point.c -o samples/entry_point
+gcc -nostartfiles -nodefaultlibs samples/nolibc.c -o samples/nolibc
 
 nasm -f elf64 nodata.asm
 ld nodata.o -o nodata
@@ -26,4 +27,18 @@ Useful commands to run:
 cargo b -p delf -p elk && ./target/debug/elk ./13_executable_packer/samples/nodata
 ugdb ./target/debug/elk ./13_executable_packer/samples/hello-mov-pie
 gdb --quiet ./13_executable_packer/samples/hello-mov-pie
+
+cd 13_executable_packer/elk
+cargo install --force --path .
 ```
+
+How to add elk to gdb:
+```sh
+echo "source /path/to/13_executable_packer/elk/gdb-elk.py > ~/.gdbinit
+```
+
+Notes:
+Stage1: In nom 8.0 there is no context anymore, but it is fine. It will be fixed on stage5.
+Stage3: There is no /lib64/ld-2.30.so. On ubuntu I used /lib/x86_64-linux-gnu/ld-linux-x86-64.so.2.
+Stage5: use RUNPATH instead of RPATH
+Stage9: In glibc 2.35 I got a link to ".plt.sec" instead of ".plt". But it is fine. I saw more output in nolibc-ifunc | xxd, but got ".UH..H..M" in the end.

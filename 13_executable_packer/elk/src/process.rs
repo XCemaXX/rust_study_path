@@ -42,7 +42,7 @@ impl Process {
             .map_err(|e| LoadError::IO(path.clone(), e))?;
 
         println!("loading {path:?}");
-        let file = delf::File::parse_or_print_error(&input[..])
+        let file = delf::File::parse_or_print_error(input)
             .ok_or_else(|| LoadError::ParseError(path.clone()))?;
 
         let origin = path
@@ -52,7 +52,8 @@ impl Process {
             .ok_or_else(|| LoadError::InvalidPath(path.clone()))?;
         self.search_path.extend(
             file.dynamic_entry_strings(delf::DynamicTag::RunPath)
-                .map(|path| path.replace("$ORIGIN", &origin))
+                .map(|path| String::from_utf8_lossy(path))
+                .map(|path| path.replace("$ORIGIN", origin))
                 .inspect(|path| println!("Found RunPath entry {path:?}"))
                 .map(PathBuf::from),
         );
@@ -91,6 +92,7 @@ impl Process {
                 let options = &[
                     MapOption::MapReadable,
                     MapOption::MapWritable,
+                    MapOption::MapExecutable,
                     MapOption::MapFd(fs_file.as_raw_fd()),
                     MapOption::MapOffset(offset.into()),
                     MapOption::MapAddr(unsafe { (base + vaddr).as_ptr() }),
@@ -113,17 +115,23 @@ impl Process {
             })
             .collect::<Result<Vec<_>, _>>()?;
 
-        let syms = file.read_syms()?;
-        let strtab = file.get_dynamic_entry(delf::DynamicTag::StrTab)
+        let syms = file.read_dynsym_entries()?;
+        let syms: Vec<_> = if syms.is_empty() {
+            Vec::new()
+        } else {
+            let strtab = file.get_dynamic_entry(delf::DynamicTag::StrTab)
             .unwrap_or_else(|_| panic!("String table not found in {path:?}"));
-        let syms = syms.into_iter().map(|sym| unsafe {
-            let name = Name::from_addr(base + strtab + sym.name);
-            NamedSym {sym, name}
-        }).collect::<Vec<_>>();
+            syms.into_iter().map(|sym| unsafe {
+                let name = Name::from_addr(base + strtab + sym.name);
+                NamedSym {sym, name}
+            }).collect::<Vec<_>>()
+        };
 
         let sym_map = MultiMap::from_iter(syms.iter().cloned().map(|sym| (sym.name.clone(), sym)));
 
-        let rels = file.read_rela_entries()?;
+        let mut rels = Vec::new();
+        rels.extend(file.read_rela_entries()?);
+        rels.extend(file.read_jmp_rel_entries()?);
 
         let object = Object {
             path: path.clone(),
@@ -170,6 +178,7 @@ impl Process {
                 .into_iter()
                 .map(|index| &self.objects[index].file)
                 .flat_map(|file| file.dynamic_entry_strings(delf::DynamicTag::Needed))
+                .map(|s| String::from_utf8_lossy(s).to_string())
                 .collect::<Vec<_>>()
                 .into_iter()
                 .map(|dep| self.get_object(&dep))
@@ -215,6 +224,11 @@ impl Process {
             RT::Relative => unsafe {
                 objrel.addr().set(obj.base + addend);
             }
+            RT::IRelative => unsafe {
+                let selector: extern "C" fn() -> delf::Addr =
+                    std::mem::transmute(obj.base + addend);
+                objrel.addr().set(selector());
+            }
             RT::Copy => unsafe {
                 objrel.addr().write(found.value().as_slice(found.size()));
             },
@@ -227,8 +241,7 @@ impl Process {
     }
 
     pub fn apply_relocations(&self) -> Result<(), RelocationError> {
-        let rels: Vec<_> = self.objects.iter().rev().map(|obj| obj.rels.iter().map(move |rel| ObjectRel{obj, rel}))
-        .flatten().collect();
+        let rels = self.objects.iter().rev().flat_map(|obj| obj.rels.iter().map(move |rel| ObjectRel{obj, rel}));
         for rel in rels {
             self.apply_relocation(rel)?;
         }
@@ -275,15 +288,16 @@ impl Process {
     }
 }
 
-#[allow(unused)]
 #[derive(Debug)]
 pub struct Object {
+    #[allow(unused)]
     pub path: PathBuf,
     pub base: delf::Addr,
     #[debug(skip)]
-    pub file: delf::File,
+    pub file: delf::File<Vec<u8>>,
     #[debug(skip)]
     pub segments: Vec<Segment>,
+    #[allow(unused)]
     pub mem_range: Range<delf::Addr>,
     #[debug(skip)]
     syms: Vec<NamedSym>,
@@ -339,11 +353,11 @@ impl ObjectRel<'_> {
     }
 }
 
-#[allow(unused)]
 #[derive(Debug)]
 pub struct Segment {
     #[debug(skip)]
     pub map: MemoryMap,
+    #[allow(unused)]
     pub padding: delf::Addr,
     pub flags: BitFlags<delf::SegmentFlag>,
 }
@@ -368,8 +382,8 @@ pub enum LoadError {
     ReadRelaError(#[from] delf::ReadRelaError),
 }
 
-#[allow(unused)]
 pub enum GetResult {
+    #[allow(unused)]
     Cached(usize),
     Fresh(usize),
 }
@@ -388,11 +402,11 @@ fn convex_hull(a: Range<delf::Addr>, b: Range<delf::Addr>) -> Range<delf::Addr> 
     (min(a.start, b.start))..max(a.end, b.end)
 }
 
-#[allow(dead_code)]
 #[derive(thiserror::Error, Debug)]
 pub enum RelocationError {
     #[error("unimplemented relocation: {0:?}")]
     UnimplementedRelocation(delf::RelType),
+    #[allow(unused)]
     #[error("unknown symbol number: {0}")]
     UnknownSymbolNumber(u32),
     #[error("undifined symbol: {0}")]

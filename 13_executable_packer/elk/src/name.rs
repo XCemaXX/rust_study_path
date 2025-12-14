@@ -1,4 +1,3 @@
-#[allow(dead_code)]
 #[derive(Clone)]
 pub enum Name {
     FromAddr { addr: delf::Addr, len: usize },

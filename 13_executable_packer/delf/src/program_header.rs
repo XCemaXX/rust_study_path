@@ -17,7 +17,6 @@ pub struct ProgramHeader {
     pub filesz: Addr,
     pub memsz: Addr,
     pub align: Addr,
-    pub data: Vec<u8>,
     pub contents: SegmentContents,
 }
 
@@ -60,7 +59,6 @@ impl ProgramHeader {
             filesz,
             memsz,
             align,
-            data: full_input[offset.into()..][..filesz.into()].to_vec(),
             contents,
         };
         Ok((i, res))

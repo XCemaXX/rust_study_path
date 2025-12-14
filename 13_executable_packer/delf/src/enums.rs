@@ -117,6 +117,7 @@ pub enum RelType {
     GlobDat = 6,
     JumpSlot = 7,
     Relative = 8,
+    IRelative = 37,
 }
 
 impl_parse_for_enum!(RelType, le_u32);
@@ -138,6 +139,40 @@ pub enum SymType {
     Object = 1,
     Func = 2,
     Section = 3,
+    File = 4,
+    IFunc = 10,
 }
 
 impl_parse_for_bitenum!(SymType, 4_usize);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, TryFromPrimitive)]
+#[repr(u32)]
+pub enum SectionType {
+    Null = 0,
+    ProgBits = 1,
+    SymTab = 2,
+    StrTab = 3,
+    Rela = 4,
+    Hash = 5,
+    Dynamic = 6,
+    Note = 7,
+    NoBits = 8,
+    Rel = 9,
+    ShLib = 10,
+    DynSym = 11,
+    InitArray = 14,
+    FiniArray = 15,
+    PreinitArray = 16,
+    Group = 17,
+    SymTabShndx = 18,
+    Num = 19,
+    GnuAttributes = 0x6ffffff5,
+    GnuHash = 0x6ffffff6,
+    GnuLiblist = 0x6ffffff7,
+    Checksum = 0x6ffffff8,
+    GnuVerdef = 0x6ffffffd,
+    GnuVerneed = 0x6ffffffe,
+    GnuVersym = 0x6fffffff,
+}
+
+impl_parse_for_enum!(SectionType, le_u32);

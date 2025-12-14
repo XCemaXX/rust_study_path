@@ -4,6 +4,8 @@ mod parse;
 mod program_header;
 mod sym;
 
+use std::ops::Range;
+
 pub use crate::{addr::*, enums::*, program_header::*, sym::*};
 use nom::{
     Parser as _, branch, combinator, multi,
@@ -11,15 +13,191 @@ use nom::{
 };
 
 #[derive(Debug)]
-pub struct File {
+pub struct File<I>
+where
+    I: AsRef<[u8]>,
+{
+    pub input: I,
+    pub contents: FileContents,
+}
+
+impl<I> std::ops::Deref for File<I>
+where
+    I: AsRef<[u8]>,
+{
+    type Target = FileContents;
+    fn deref(&self) -> &Self::Target {
+        &self.contents
+    }
+}
+
+impl<I> File<I>
+where
+    I: AsRef<[u8]>,
+{
+    pub fn parse_or_print_error(input: I) -> Option<Self> {
+        match FileContents::parse(input.as_ref()) {
+            Ok((_, contents)) => Some(File { input, contents }),
+            Err(nom::Err::Error(err)) | Err(nom::Err::Failure(err)) => {
+                eprintln!("Parsing failed:");
+                for (input, err) in err.errors {
+                    use nom::Offset;
+                    let offset = input.offset(input);
+                    eprintln!("{:?} at position {}:", err, offset);
+                    eprintln!("{:>08x}: {:?}", offset, HexDump(input));
+                }
+                None
+            }
+            Err(_) => panic!("unexpected nom error"),
+        }
+    }
+
+    /// Returns a slice of the input, indexed by file offsets
+    pub fn file_slice(&self, addr: Addr, len: usize) -> &[u8] {
+        &self.input.as_ref()[addr.into()..len]
+    }
+
+    /// Returns a slice of the input corresponding to the given section
+    pub fn section_slice(&self, section: &SectionHeader) -> &[u8] {
+        let fr = section.file_range();
+        self.file_slice(fr.start, fr.end.into())
+    }
+
+    /// Returns a slice of the input corresponding to the given segment
+    pub fn segment_slice(&self, segment: &ProgramHeader) -> &[u8] {
+        let fr = segment.file_range();
+        self.file_slice(fr.start, fr.end.into())
+    }
+
+    /// Returns a slice of the input, indexed by virtual addresses
+    pub fn mem_slice(&self, addr: Addr, len: usize) -> Option<&[u8]> {
+        self.segment_containing(addr).map(|segment| {
+            let start: usize = (addr - segment.mem_range().start).into();
+            &self.segment_slice(segment)[start..start + len]
+        })
+    }
+
+    /// Returns an iterator of string values (or rather, u8 slices) of
+    /// dynamic entries for the given tag.
+    pub fn dynamic_entry_strings(&self, tag: DynamicTag) -> impl Iterator<Item = &[u8]> + '_ {
+        self.dynamic_entries(tag)
+            .map(move |addr| self.dynstr_entry(addr))
+    }
+
+    /// Read relocation entries from the table pointed to by `DynamicTag::Rela`
+    pub fn read_rela_entries(&self) -> Result<Vec<Rela>, ReadRelaError> {
+        self.read_relocations(DynamicTag::Rela, DynamicTag::RelaSz)
+    }
+
+    /// Read relocation entries from the table pointed to by `DynamicTag::JmpRel`
+    pub fn read_jmp_rel_entries(&self) -> Result<Vec<Rela>, ReadRelaError> {
+        self.read_relocations(DynamicTag::JmpRel, DynamicTag::PltRelSz)
+    }
+
+    /// Read symbols from the given section (internal)
+    fn read_symbol_table(&self, section_type: SectionType) -> Result<Vec<Sym>, ReadSymsError> {
+        let Some(section) = self.section_of_type(section_type) else {
+            return Ok(Vec::new());
+        };
+
+        let i = self.section_slice(section);
+        let n = i.len() / section.entsize.0 as usize;
+        match multi::many_m_n(n, n, Sym::parse).parse(i) {
+            Ok((_, syms)) => Ok(syms),
+            Err(nom::Err::Error(err)) | Err(nom::Err::Failure(err)) => {
+                Err(ReadSymsError::ParsingError(format!("{err:?}")))
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    /// Read symbols from the ".dynsym" section (loader view)
+    pub fn read_dynsym_entries(&self) -> Result<Vec<Sym>, ReadSymsError> {
+        self.read_symbol_table(SectionType::DynSym)
+    }
+
+    /// Read symbols from the ".symtab" section (linker view)
+    pub fn read_symtab_entries(&self) -> Result<Vec<Sym>, ReadSymsError> {
+        self.read_symbol_table(SectionType::SymTab)
+    }
+
+    // Returns a null-terminated "string" from the ".shstrtab" section as an u8 slice
+    pub fn shstrtab_entry(&self, offset: Addr) -> &[u8] {
+        let section = &self.contents.section_headers[self.contents.shstrndx];
+        let slice = &self.section_slice(section)[offset.into()..];
+        slice.split(|&c| c == 0).next().unwrap_or_default()
+    }
+
+    /// Get a section by name
+    pub fn section_by_name(&self, name: &[u8]) -> Option<&SectionHeader> {
+        self.section_headers
+            .iter()
+            .find(|sh| self.shstrtab_entry(sh.name) == name)
+    }
+
+    /// Returns an entry from a string table contained in the section with a given name
+    fn string_table_entry(&self, name: &[u8], offset: Addr) -> &[u8] {
+        self.section_by_name(name)
+            .map(|section| {
+                let slice = &self.section_slice(section)[offset.into()..];
+                slice.split(|&c| c == 0).next().unwrap_or_default()
+            })
+            .unwrap_or_default()
+    }
+
+    /// Returns a null-terminated "string" from the ".strtab" section as an u8 slice
+    pub fn strtab_entry(&self, offset: Addr) -> &[u8] {
+        self.string_table_entry(b".strtab", offset)
+    }
+
+    /// Returns a null-terminated "string" from the ".dynstr" section as an u8 slice
+    pub fn dynstr_entry(&self, offset: Addr) -> &[u8] {
+        self.string_table_entry(b".dynstr", offset)
+    }
+
+    fn read_relocations(
+        &self,
+        addr_tag: DynamicTag,
+        size_tag: DynamicTag,
+    ) -> Result<Vec<Rela>, ReadRelaError> {
+        use ReadRelaError as E;
+
+        let Some(addr) = self.dynamic_entry(addr_tag) else {
+            return Ok(Vec::new());
+        };
+
+        let len = self.get_dynamic_entry(size_tag)?;
+
+        let i = self
+            .mem_slice(addr, len.into())
+            .ok_or(E::RelaSegmentNotFound)?;
+        let n = len.0 as usize / Rela::SIZE;
+
+        match multi::many_m_n(n, n, Rela::parse).parse(i) {
+            Ok((_, rela_entires)) => Ok(rela_entires),
+            Err(nom::Err::Error(err)) | Err(nom::Err::Failure(err)) => {
+                Err(E::ParsingError(format!("{err:?}")))
+            }
+            _ => {
+                unreachable!(
+                    r#"we don't use any "streaming" parsers, so `nom::Err::Incomplete` seems unlikely"#
+                )
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct FileContents {
     pub r#type: Type,
     pub machine: Machine,
     pub entry_point: Addr,
     pub program_headers: Vec<ProgramHeader>,
     pub section_headers: Vec<SectionHeader>,
+    pub shstrndx: usize,
 }
 
-impl File {
+impl FileContents {
     const MAGIC: &'static [u8] = b"\x7FELF"; // 0x7f, 0x45, 0x4c, 0x46
 
     pub fn parse(i: parse::Input) -> parse::Result<Self> {
@@ -53,10 +231,10 @@ impl File {
         let (i, (ph_offset, sh_offset)) = (Addr::parse, Addr::parse).parse(i)?;
         let (i, (_flags, _hdr_size)) = (le_u32, le_u16).parse(i)?;
         let (i, (ph_entsize, ph_count)) = (u16_usize(), u16_usize()).parse(i)?;
-        let (i, (sh_entsize, sh_count, _sh_nidx)) =
+        let (i, (sh_entsize, sh_count, sh_nidx)) =
             (u16_usize(), u16_usize(), u16_usize()).parse(i)?;
 
-        let ph_slices = (&full_input[ph_offset.into()..]).chunks(ph_entsize);
+        let ph_slices = (full_input[ph_offset.into()..]).chunks(ph_entsize);
         let program_headers = ph_slices
             .take(ph_count)
             .map(|ph_slice| {
@@ -65,7 +243,7 @@ impl File {
             })
             .collect::<Result<Vec<_>, _>>()?;
 
-        let sh_slices = (&full_input[sh_offset.into()..]).chunks(sh_entsize);
+        let sh_slices = (full_input[sh_offset.into()..]).chunks(sh_entsize);
         let section_headers = sh_slices
             .take(sh_count)
             .map(|sh_slice| {
@@ -80,38 +258,29 @@ impl File {
             entry_point,
             program_headers,
             section_headers,
+            shstrndx: sh_nidx as _,
         };
         Ok((i, res))
     }
 
-    pub fn parse_or_print_error(i: parse::Input) -> Option<Self> {
-        match Self::parse(i) {
-            Ok((_, file)) => Some(file),
-            Err(nom::Err::Error(err)) | Err(nom::Err::Failure(err)) => {
-                eprintln!("Parsing failed:");
-                for (input, err) in err.errors {
-                    use nom::Offset;
-                    let offset = i.offset(input);
-                    eprintln!("{:?} at position {}:", err, offset);
-                    eprintln!("{:>08x}: {:?}", offset, HexDump(input));
-                }
-                None
-            }
-            Err(_) => panic!("unexpected nom error"),
-        }
-    }
-
-    pub fn segment_at(&self, addr: Addr) -> Option<&ProgramHeader> {
-        self.program_headers
-            .iter()
-            .filter(|ph| ph.r#type == SegmentType::Load)
-            .find(|ph| ph.mem_range().contains(&addr))
-    }
-
+    /// Returns the first segment of a given type
     pub fn segment_of_type(&self, r#type: SegmentType) -> Option<&ProgramHeader> {
         self.program_headers.iter().find(|ph| ph.r#type == r#type)
     }
 
+    /// Returns the first section of a given type
+    pub fn section_of_type(&self, r#type: SectionType) -> Option<&SectionHeader> {
+        self.section_headers.iter().find(|sh| sh.r#type == r#type)
+    }
+
+    /// Attempts to find a Load segment whose memory range contains the given virtual address
+    pub fn segment_containing(&self, addr: Addr) -> Option<&ProgramHeader> {
+        self.program_headers
+            .iter()
+            .find(|ph| ph.r#type == SegmentType::Load && ph.mem_range().contains(&addr))
+    }
+
+    /// Attempts to find the Dynamic segment and return its entries as a slice
     pub fn dynamic_table(&self) -> Option<&[DynamicEntry]> {
         match self.segment_of_type(SegmentType::Dynamic) {
             Some(ProgramHeader {
@@ -122,6 +291,8 @@ impl File {
         }
     }
 
+    /// Returns an iterator of all dynamic entries with the given tag.
+    /// Especially useful with DynamicTag::Needed
     pub fn dynamic_entries(&self, tag: DynamicTag) -> impl Iterator<Item = Addr> + '_ {
         self.dynamic_table()
             .unwrap_or_default()
@@ -130,93 +301,12 @@ impl File {
             .map(|e| e.addr)
     }
 
+    /// Returns the value of the first dynamic entry with the given tag, or None
     pub fn dynamic_entry(&self, tag: DynamicTag) -> Option<Addr> {
         self.dynamic_entries(tag).next()
     }
 
-    pub fn dynamic_entry_strings(&self, tag: DynamicTag) -> impl Iterator<Item = String> {
-        self.dynamic_entries(tag)
-            .filter_map(move |addr| self.get_string(addr).ok())
-        // This will silently ignore strings we're not able to retrieve
-    }
-
-    pub fn read_rela_entries(&self) -> Result<Vec<Rela>, ReadRelaError> {
-        use DynamicTag as DT;
-        use ReadRelaError as E;
-
-        match self.dynamic_entry(DT::Rela) {
-            None => Ok(Vec::new()),
-            Some(addr) => {
-                let len = self.get_dynamic_entry(DT::RelaSz)?;
-
-                let i = self.slice_at(addr).ok_or(E::RelaSegmentNotFound)?;
-                let i = &i[..len.into()];
-                let n = len.0 as usize / Rela::SIZE;
-
-                match multi::many_m_n(n, n, Rela::parse).parse(i) {
-                    Ok((_, rela_entires)) => Ok(rela_entires),
-                    Err(nom::Err::Error(err)) | Err(nom::Err::Failure(err)) => {
-                        Err(E::ParsingError(format!("{err:?}")))
-                    }
-                    _ => {
-                        unreachable!(
-                            r#"we don't use any "streaming" parsers, so `nom::Err::Incomplete` seems unlikely"#
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    /// Returns a slice containing the contents of the relevant Load segment
-    /// starting at `mem_addr` until the end of that segment
-    pub fn slice_at(&self, mem_addr: Addr) -> Option<&[u8]> {
-        self.segment_at(mem_addr)
-            .map(|seg| &seg.data[(mem_addr - seg.mem_range().start).into()..])
-    }
-
-    pub fn get_string(&self, offset: Addr) -> Result<String, GetSringErorr> {
-        use DynamicTag as DT;
-        use GetSringErorr as E;
-
-        let addr = self.dynamic_entry(DT::StrTab).ok_or(E::StrTabNotFound)?;
-        let slice = self
-            .slice_at(addr + offset)
-            .ok_or(E::StrTabSegmentNotFound)?;
-
-        let string_slice = slice.split(|&c| c == 0).next().ok_or(E::StringNotFound)?;
-        Ok(String::from_utf8_lossy(string_slice).into())
-    }
-
-    pub fn section_starting_at(&self, addr: Addr) -> Option<&SectionHeader> {
-        self.section_headers.iter().find(|sh| sh.addr == addr)
-    }
-
-    pub fn read_syms(&self) -> Result<Vec<Sym>, ReadSymsError> {
-        use DynamicTag as DT;
-        use ReadSymsError as E;
-
-        let addr = self.get_dynamic_entry(DT::SymTab)?;
-        let section = self
-            .section_starting_at(addr)
-            .ok_or(E::SymTabSectionNotFound)?;
-
-        let i = self.slice_at(addr).ok_or(E::SymTabSegmentNotFound)?;
-        let n = (section.size.0 / section.entsize.0) as usize;
-
-        match multi::many_m_n(n, n, Sym::parse).parse(i) {
-            Ok((_, syms)) => Ok(syms),
-            Err(nom::Err::Error(err)) | Err(nom::Err::Failure(err)) => {
-                Err(E::ParsingError(format!("{err:?}")))
-            }
-            _ => {
-                unreachable!(
-                    r#"we don't use any "streaming" parsers, so `nom::Err::Incomplete` seems unlikely"#
-                )
-            }
-        }
-    }
-
+    /// Returns the value of the first dynamic entry with the given tag, or an error
     pub fn get_dynamic_entry(&self, tag: DynamicTag) -> Result<Addr, GetDynamicEntryError> {
         self.dynamic_entry(tag)
             .ok_or(GetDynamicEntryError::NotFound(tag))
@@ -289,10 +379,10 @@ pub enum GetSringErorr {
 #[derive(Debug)]
 pub struct SectionHeader {
     pub name: Addr,
-    pub r#type: u32,
+    pub r#type: SectionType,
     pub flags: u64,
     pub addr: Addr,
-    pub off: Addr,
+    pub offset: Addr,
     pub size: Addr,
     pub link: u32,
     pub info: u32,
@@ -302,9 +392,9 @@ pub struct SectionHeader {
 
 impl SectionHeader {
     pub fn parse(i: parse::Input) -> parse::Result<Self> {
-        let (i, (name, r#type, flags, addr, off, size, link, info, addralign, entsize)) = (
+        let (i, (name, r#type, flags, addr, offset, size, link, info, addralign, entsize)) = (
             combinator::map(le_u32, |x| Addr(x as u64)),
-            le_u32,
+            SectionType::parse,
             le_u64,
             Addr::parse,
             Addr::parse,
@@ -320,7 +410,7 @@ impl SectionHeader {
             r#type,
             flags,
             addr,
-            off,
+            offset,
             size,
             link,
             info,
@@ -328,6 +418,14 @@ impl SectionHeader {
             entsize,
         };
         Ok((i, res))
+    }
+
+    pub fn file_range(&self) -> Range<Addr> {
+        self.offset..self.offset + self.size
+    }
+
+    pub fn mem_range(&self) -> Range<Addr> {
+        self.addr..self.addr + self.size
     }
 }
 
