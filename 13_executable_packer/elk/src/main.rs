@@ -176,16 +176,15 @@ fn cmd_run(args: RunArgs) -> Result<(), AnyError> {
     let exec_obj = &proc.objects[exec_index];
     let entry_point = exec_obj.file.entry_point + exec_obj.base;
 
-    unsafe {
-        jmp(entry_point.as_ptr());
-    }
-
-    Ok(())
+    unsafe { jmp(entry_point.as_ptr()) }
 }
 
-unsafe fn jmp(addr: *const u8) {
-    let fn_ptr: fn() = unsafe { std::mem::transmute(addr) };
-    fn_ptr();
+unsafe fn jmp(addr: *const u8) -> ! {
+    unsafe {
+        type EntryPoint = extern "C" fn() -> !;
+        let entry_point: EntryPoint = std::mem::transmute(addr);
+        entry_point()
+    }
 }
 
 fn analyze(mapping: &procfs::Mapping) -> Result<(), AnyError> {

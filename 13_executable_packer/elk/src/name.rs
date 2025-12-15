@@ -1,21 +1,28 @@
+use std::{ops::Range, sync::Arc};
+
+use mmap::MemoryMap;
+
 #[derive(Clone)]
 pub enum Name {
-    FromAddr { addr: delf::Addr, len: usize },
+    Mmapped {
+        map: Arc<MemoryMap>,
+        range: Range<usize>,
+    },
     Owned(Vec<u8>),
 }
 
 impl Name {
-    /// # Safety
-    ///
-    /// `addr` must point to a null-terminated string, otherwise it's an UB
-    pub unsafe fn from_addr(addr: delf::Addr) -> Self {
-        let len = unsafe {
-            addr.as_slice::<u8>(2048)
-                .iter()
-                .position(|&c| c == 0)
-                .expect("scanned 2048 bytes without finding null-terminator for name")
-        };
-        Self::FromAddr { addr, len }
+    pub fn mapped(map: Arc<MemoryMap>, offset: usize) -> Self {
+        let len = map
+            .as_slice()
+            .iter()
+            .skip(offset)
+            .position(|&c| c == 0)
+            .expect("scanned 2048 bytes without finding null-terminator for name");
+        Self::Mmapped {
+            map,
+            range: offset..offset + len,
+        }
     }
 
     #[allow(dead_code)]
@@ -25,7 +32,7 @@ impl Name {
 
     pub fn as_slice(&self) -> &[u8] {
         match self {
-            Name::FromAddr { addr, len } => unsafe { addr.as_slice(*len) },
+            Name::Mmapped { map, range } => &map.as_slice()[range.clone()],
             Name::Owned(v) => v,
         }
     }
@@ -51,5 +58,17 @@ impl Eq for Name {}
 impl std::hash::Hash for Name {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         std::hash::Hash::hash(self.as_slice(), state)
+    }
+}
+
+trait MemoryMapExt {
+    fn as_slice(&self) -> &[u8];
+}
+
+impl MemoryMapExt for MemoryMap {
+    fn as_slice(&self) -> &[u8] {
+        // # Safety
+        // hope on MemoryMap
+        unsafe { std::slice::from_raw_parts(self.data(), self.len()) }
     }
 }

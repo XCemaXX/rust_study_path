@@ -4,7 +4,7 @@ use std::{
     io::Read,
     ops::Range,
     os::fd::AsRawFd,
-    path::{Path, PathBuf},
+    path::{Path, PathBuf}, sync::Arc,
 };
 
 use derive_more::Debug;
@@ -95,7 +95,7 @@ impl Process {
                     MapOption::MapExecutable,
                     MapOption::MapFd(fs_file.as_raw_fd()),
                     MapOption::MapOffset(offset.into()),
-                    MapOption::MapAddr(unsafe { (base + vaddr).as_ptr() }),
+                    MapOption::MapAddr((base + vaddr).as_ptr()),
                 ];
                 let map = MemoryMap::new(filesz.into(), options)?;
                 
@@ -108,7 +108,8 @@ impl Process {
                 }
                 
                 Ok(Segment {
-                    map,
+                    map: map.into(),
+                    vaddr_range: vaddr..(ph.vaddr + ph.memsz),
                     padding,
                     flags: ph.flags,
                 })
@@ -119,10 +120,13 @@ impl Process {
         let syms: Vec<_> = if syms.is_empty() {
             Vec::new()
         } else {
-            let strtab = file.get_dynamic_entry(delf::DynamicTag::StrTab)
-            .unwrap_or_else(|_| panic!("String table not found in {path:?}"));
-            syms.into_iter().map(|sym| unsafe {
-                let name = Name::from_addr(base + strtab + sym.name);
+            let dynstr = file.get_dynamic_entry(delf::DynamicTag::StrTab)
+                .unwrap_or_else(|_| panic!("String table not found in {path:?}"));
+            let segment = segments.iter().find(|seg| seg.vaddr_range.contains(&dynstr))
+                .unwrap_or_else(|| panic!("Segment not found for string table in {path:#?}"));
+
+            syms.into_iter().map(|sym| {
+                let name = Name::mapped(segment.map.clone(), (dynstr + sym.name - segment.vaddr_range.start).into());
                 NamedSym {sym, name}
             }).collect::<Vec<_>>()
         };
@@ -210,7 +214,7 @@ impl Process {
                 undef @ ResolvedSym::Undefined => {
                     match wanted.sym.sym.bind {
                         delf::SymBind::Weak => undef,
-                        _ => return Err(RelocationError::UndefinedSymbol(format!("{wanted:?}"))),
+                        _ => return Err(RelocationError::UndefinedSymbol(wanted.sym.clone())),
                     }
                 },
                 defined => defined,
@@ -225,8 +229,8 @@ impl Process {
                 objrel.addr().set(obj.base + addend);
             }
             RT::IRelative => unsafe {
-                let selector: extern "C" fn() -> delf::Addr =
-                    std::mem::transmute(obj.base + addend);
+                type Selector = unsafe extern "C" fn() -> delf::Addr;
+                let selector: Selector = std::mem::transmute(obj.base + addend);
                 objrel.addr().set(selector());
             }
             RT::Copy => unsafe {
@@ -356,7 +360,8 @@ impl ObjectRel<'_> {
 #[derive(Debug)]
 pub struct Segment {
     #[debug(skip)]
-    pub map: MemoryMap,
+    pub map: Arc<MemoryMap>,
+    pub vaddr_range: Range<delf::Addr>,
     #[allow(unused)]
     pub padding: delf::Addr,
     pub flags: BitFlags<delf::SegmentFlag>,
@@ -409,12 +414,12 @@ pub enum RelocationError {
     #[allow(unused)]
     #[error("unknown symbol number: {0}")]
     UnknownSymbolNumber(u32),
-    #[error("undifined symbol: {0}")]
-    UndefinedSymbol(String),
+    #[error("undifined symbol: {0:?}")]
+    UndefinedSymbol(NamedSym),
 }
 
 #[derive(Debug, Clone)]
-struct NamedSym {
+pub struct NamedSym {
     sym: delf::Sym,
     name: Name
 }

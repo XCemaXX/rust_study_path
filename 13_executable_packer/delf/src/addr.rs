@@ -4,6 +4,7 @@ use crate::parse;
 use derive_more::{Add, Sub};
 use nom::{Parser as _, combinator, number::complete::le_u64};
 
+#[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Add, Sub)]
 pub struct Addr(pub u64);
 
@@ -32,17 +33,11 @@ impl From<Addr> for usize {
 }
 
 impl Addr {
-    /// # Safety
-    /// `self` must be a valid, properly aligned pointer to `T`
-    /// that is alive for the returned lifetime.
-    pub unsafe fn as_ptr<T>(&self) -> *const T {
+    pub fn as_ptr<T>(&self) -> *const T {
         self.0 as usize as *const T
     }
 
-    /// # Safety
-    /// Same as `as_ptr`, and no other references to the pointed
-    /// memory may exist for the duration of the borrow.
-    pub unsafe fn as_mut_ptr<T>(&self) -> *mut T {
+    pub fn as_mut_ptr<T>(&self) -> *mut T {
         self.0 as usize as *mut T
     }
 
