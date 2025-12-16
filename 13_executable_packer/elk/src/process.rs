@@ -236,8 +236,11 @@ impl Process {
             RT::Copy => unsafe {
                 objrel.addr().write(found.value().as_slice(found.size()));
             },
+            RT::GlobDat | RT::JumpSlot => unsafe {
+                objrel.addr().set(found.value());
+            }
             _ => {
-                return Err(RelocationError::UnimplementedRelocation(reltype));
+                return Err(RelocationError::UnimplementedRelocation(obj.path.clone(), reltype));
             }
         }
         Ok(())
@@ -409,8 +412,8 @@ fn convex_hull(a: Range<delf::Addr>, b: Range<delf::Addr>) -> Range<delf::Addr> 
 
 #[derive(thiserror::Error, Debug)]
 pub enum RelocationError {
-    #[error("unimplemented relocation: {0:?}")]
-    UnimplementedRelocation(delf::RelType),
+    #[error("{0:?}: unimplemented relocation: {1:?}")]
+    UnimplementedRelocation(PathBuf, delf::RelType),
     #[allow(unused)]
     #[error("unknown symbol number: {0}")]
     UnknownSymbolNumber(u32),
