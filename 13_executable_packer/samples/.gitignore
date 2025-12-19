@@ -1,7 +1,9 @@
 *
 !*/
-!\.gitignore
-!*\.c
-!*\.asm
-!*\.sh
-!*\Makefile
+!.gitignore
+!echidna/
+!echidna/**
+!*.c
+!*.asm
+!*.sh
+!*Makefile

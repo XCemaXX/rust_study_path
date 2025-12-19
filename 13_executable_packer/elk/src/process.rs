@@ -5,6 +5,7 @@ use std::{
     ops::Range,
     os::fd::AsRawFd,
     path::{Path, PathBuf}, sync::Arc,
+    ffi::CString
 };
 
 use derive_more::Debug;
@@ -293,6 +294,80 @@ impl Process {
         }
         Ok(())
     }
+
+    fn build_stack(opts: &StartOptions) -> Vec<u64> {
+        let mut stack = Vec::new();
+        let null = 0_u64;
+
+        macro_rules! push {
+            ($x:expr) => {
+                stack.push($x as u64)
+            };
+        }
+
+        let argc = opts.args.len();
+        push!(argc);
+
+        for argv in &opts.args {
+            push!(argv.as_ptr());
+        }
+        push!(null);
+
+        for envp in &opts.env {
+            push!(envp.as_ptr());
+        }
+        push!(null);
+
+        for auxv in &opts.auxv {
+            push!(auxv.typ);
+            push!(auxv.value);
+        }
+        push!(AuxType::Null);
+        push!(null);
+
+        if stack.len() % 2 == 1 {
+            push!(null);
+        }
+
+        stack
+    }
+
+    pub fn start(&self, opts: &StartOptions) {
+        let exec = opts.exec;
+        let entry_point = exec.file.entry_point + exec.base;
+        let stack = Self::build_stack(opts);
+
+        unsafe { jmp(entry_point.as_ptr(), stack.as_ptr(), stack.len()) }
+    }
+}
+
+#[inline(never)]
+unsafe fn jmp(entry_point: *const u8, stack_contents: *const u64, qword_count: usize) {
+    unsafe {
+        core::arch::asm!(
+            // allocate (qword_count * 8) bytes
+            "mov {tmp}, {qword_count}",
+            "sal {tmp}, 3",
+            "sub rsp, {tmp}",
+
+            "2:",
+            // start at i = (n-1)
+            "sub {qword_count}, 1",
+            // copy qwords to the stack
+            "mov {tmp}, QWORD PTR [{stack_contents}+{qword_count}*8]",
+            "mov QWORD PTR [rsp+{qword_count}*8], {tmp}",
+            // loop if i isn't zero, break otherwise
+            "test {qword_count}, {qword_count}",
+            "jnz 2b",
+
+            "jmp {entry_point}",
+
+            entry_point = in(reg) entry_point,
+            stack_contents = in(reg) stack_contents,
+            qword_count = in(reg) qword_count,
+            tmp = out(reg) _,
+        )
+    }
 }
 
 #[derive(Debug)]
@@ -426,3 +501,126 @@ pub struct NamedSym {
     sym: delf::Sym,
     name: Name
 }
+
+pub struct StartOptions<'a> {
+    pub exec: &'a Object,
+    pub args: Vec<CString>,
+    pub env: Vec<CString>,
+    pub auxv: Vec<Auxv>
+}
+
+pub struct Auxv {
+    typ: AuxType,
+    value: u64,
+}
+
+impl Auxv {
+    // can be replaced with strum
+    const KNOWN_TYPES: &'static [AuxType] = &[
+        AuxType::ExecFd,
+        AuxType::PHdr,
+        AuxType::PhEnt,
+        AuxType::PhNum,
+        AuxType::PageSz,
+        AuxType::Base,
+        AuxType::Flags,
+        AuxType::Entry,
+        AuxType::NotElf,
+        AuxType::Uid,
+        AuxType::EUid,
+        AuxType::Gid,
+        AuxType::EGid,
+        AuxType::Platform,
+        AuxType::HwCap,
+        AuxType::ClkTck,
+        AuxType::Secure,
+        AuxType::BasePlatform,
+        AuxType::Random,
+        AuxType::HwCap2,
+        AuxType::RseqFeatureSize,
+        AuxType::RseqAlign,
+        AuxType::ExecFn,
+        AuxType::SysInfo,
+        AuxType::SysInfoEHdr,
+        AuxType::MinSigStkSz,
+    ];
+
+    pub fn get(typ: AuxType) -> Option<Self> {
+        unsafe extern "C" {
+            // from libc
+            fn getauxval(typ: u64) -> u64;
+        }
+
+        unsafe {
+            match getauxval(typ as u64) {
+                0 => None,
+                value => Some(Self { typ, value }),
+            }
+        }
+    }
+
+    pub fn get_known() -> Vec<Self> {
+        Self::KNOWN_TYPES.iter().copied().filter_map(Self::get).collect()
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+#[repr(u64)]
+pub enum AuxType {
+    /// End of vector
+    Null = 0,
+    /// Entry should be ignored
+    _Ignore = 1,
+    /// File descriptor of program
+    ExecFd = 2,
+    /// Program headers for program
+    PHdr = 3,
+    /// Size of program header entry
+    PhEnt = 4,
+    /// Number of program headers
+    PhNum = 5,
+    /// System page size
+    PageSz = 6,
+    /// Base address of interpreter
+    Base = 7,
+    /// Flags
+    Flags = 8,
+    /// Entry point of program
+    Entry = 9,
+    /// Program is not ELF
+    NotElf = 10,
+    /// Real uid
+    Uid = 11,
+    /// Effective uid
+    EUid = 12,
+    /// Real gid
+    Gid = 13,
+    /// Effective gid
+    EGid = 14,
+    /// String identifying CPU for optimizations
+    Platform = 15,
+    /// Arch-dependent hints at CPU capabilities
+    HwCap = 16,
+    /// Frequency at which times() increments
+    ClkTck = 17,
+    /// Secure mode boolean
+    Secure = 23,
+    /// String identifying real platform, may differ from Platform
+    BasePlatform = 24,
+    /// Address of 16 random bytes
+    Random = 25,
+    /// Extension of HwCap
+    HwCap2 = 26,
+    /// Rseq supported feature size
+    RseqFeatureSize = 27,
+    /// Rseq allocation alignment
+    RseqAlign = 28,
+    /// Filename of program
+    ExecFn = 31,
+
+    SysInfo = 32,
+    SysInfoEHdr = 33,
+    /// Minimal stack size for signal delivery
+    MinSigStkSz = 51,
+}
+

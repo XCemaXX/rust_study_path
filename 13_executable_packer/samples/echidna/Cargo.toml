@@ -1,0 +1,15 @@
+[workspace]
+
+[package]
+name = "echidna"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+compiler_builtins = { version = "0.1.160", features = ["mem"] }
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"

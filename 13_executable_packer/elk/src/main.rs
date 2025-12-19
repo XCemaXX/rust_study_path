@@ -34,6 +34,8 @@ struct AutosymArgs {
 struct RunArgs {
     /// the absolute path of an executable file to load and run
     exec_path: String,
+    /// arguments for the executable file
+    args: Vec<String>,
 }
 
 #[derive(clap::Args)]
@@ -169,22 +171,33 @@ fn dig(mapping: &Mapping<'_>, addr: delf::Addr) -> Result<(), AnyError> {
 
 fn cmd_run(args: RunArgs) -> Result<(), AnyError> {
     let mut proc = process::Process::new();
-    let exec_index = proc.load_object_and_dependencies(args.exec_path)?;
+    let exec_index = proc.load_object_and_dependencies(&args.exec_path)?;
     proc.apply_relocations()?;
     proc.adjust_protections()?;
 
-    let exec_obj = &proc.objects[exec_index];
-    let entry_point = exec_obj.file.entry_point + exec_obj.base;
+    use std::ffi::CString;
 
-    unsafe { jmp(entry_point.as_ptr()) }
-}
+    let exec = &proc.objects[exec_index];
+    let args = std::iter::once(CString::new(args.exec_path.as_bytes()).unwrap())
+        .chain(
+            args.args
+                .iter()
+                .map(|s| CString::new(s.as_bytes()).unwrap()),
+        )
+        .collect();
+    let env = std::env::vars()
+        .map(|(k, v)| CString::new(format!("{k}={v}").as_bytes()).unwrap())
+        .collect();
 
-unsafe fn jmp(addr: *const u8) -> ! {
-    unsafe {
-        type EntryPoint = extern "C" fn() -> !;
-        let entry_point: EntryPoint = std::mem::transmute(addr);
-        entry_point()
-    }
+    let opts = process::StartOptions {
+        exec,
+        args,
+        env,
+        auxv: process::Auxv::get_known(),
+    };
+    proc.start(&opts);
+
+    Ok(())
 }
 
 fn analyze(mapping: &procfs::Mapping) -> Result<(), AnyError> {
