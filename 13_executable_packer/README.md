@@ -44,3 +44,4 @@ Stage3: There is no /lib64/ld-2.30.so. On ubuntu I used /lib/x86_64-linux-gnu/ld
 Stage5: use RUNPATH instead of RPATH
 Stage9: In glibc 2.35 I got a link to ".plt.sec" instead of ".plt". But it is fine. I saw more output in nolibc-ifunc | xxd, but got ".UH..H..M" in the end.
 Stage11: Different behavior of dynamic symbol resolution. Unlike the classic lazy-binding flow, _dl_runtime_resolve_xsavec is not involved. The PLT entry contains endbr64 followed by a direct bnd jmp through the GOT. The GOT entry is already populated, so the symbol is resolved immediately rather than via the runtime resolver.
+stage13: /bin/ls requires DTPMOD64(code: 16) relocation.

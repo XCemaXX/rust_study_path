@@ -172,12 +172,13 @@ fn dig(mapping: &Mapping<'_>, addr: delf::Addr) -> Result<(), AnyError> {
 fn cmd_run(args: RunArgs) -> Result<(), AnyError> {
     let mut proc = process::Process::new();
     let exec_index = proc.load_object_and_dependencies(&args.exec_path)?;
-    proc.apply_relocations()?;
-    proc.adjust_protections()?;
+    let proc = proc.allocate_tls();
+    let proc = proc.apply_relocations()?;
+    let proc = proc.initialize_tls();
+    let proc = proc.adjust_protections()?;
 
     use std::ffi::CString;
 
-    let exec = &proc.objects[exec_index];
     let args = std::iter::once(CString::new(args.exec_path.as_bytes()).unwrap())
         .chain(
             args.args
@@ -190,14 +191,12 @@ fn cmd_run(args: RunArgs) -> Result<(), AnyError> {
         .collect();
 
     let opts = process::StartOptions {
-        exec,
+        exec_index,
         args,
         env,
         auxv: process::Auxv::get_known(),
     };
-    proc.start(&opts);
-
-    Ok(())
+    proc.start(&opts)
 }
 
 fn analyze(mapping: &procfs::Mapping) -> Result<(), AnyError> {

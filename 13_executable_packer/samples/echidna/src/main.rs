@@ -1,5 +1,6 @@
 #![no_std]
 #![no_main]
+#![feature(thread_local)]
 
 use core::{arch::naked_asm, slice};
 
@@ -12,9 +13,34 @@ pub unsafe extern "C" fn _start() {
     naked_asm!("mov rdi, rsp", "call main")
 }
 
+#[thread_local]
+static mut FOO: u32 = 10;
+#[thread_local]
+static mut BAR: u32 = 100;
+
+#[inline(never)]
+fn blackbox(x: u32) {
+    println!(x as usize)
+}
+
+#[inline(never)]
+#[unsafe(no_mangle)]
+fn play_with_tls() {
+    unsafe {
+        blackbox(FOO);
+        blackbox(BAR);
+        FOO *= 3;
+        BAR *= 6;
+        blackbox(FOO);
+        blackbox(BAR);
+    }
+}
+
 #[unsafe(no_mangle)]
 pub fn main(stack_top: *const u8) {
     unsafe {
+        play_with_tls();
+
         let argc = *(stack_top as *const u64);
         let argv = stack_top.add(8) as *const *const u8;
 

@@ -5,7 +5,7 @@ use derive_more::{Add, Sub};
 use nom::{Parser as _, combinator, number::complete::le_u64};
 
 #[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Add, Sub)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Add, Sub, Hash)]
 pub struct Addr(pub u64);
 
 impl fmt::Debug for Addr {

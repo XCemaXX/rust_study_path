@@ -70,3 +70,6 @@ members = [
     "13_executable_packer/delf",
     "13_executable_packer/elk",
 ]
+
+[profile.release]
+debug = true

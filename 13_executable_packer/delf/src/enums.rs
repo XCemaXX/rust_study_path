@@ -117,6 +117,9 @@ pub enum RelType {
     GlobDat = 6,
     JumpSlot = 7,
     Relative = 8,
+    DTPMOD64 = 16,
+    DTPOFF64 = 17,
+    TPOff64 = 18,
     IRelative = 37,
 }
 
@@ -140,6 +143,7 @@ pub enum SymType {
     Func = 2,
     Section = 3,
     File = 4,
+    TLS = 6,
     IFunc = 10,
 }
 
