@@ -172,6 +172,7 @@ fn dig(mapping: &Mapping<'_>, addr: delf::Addr) -> Result<(), AnyError> {
 fn cmd_run(args: RunArgs) -> Result<(), AnyError> {
     let mut proc = process::Process::new();
     let exec_index = proc.load_object_and_dependencies(&args.exec_path)?;
+    proc.pathc_libc();
     let proc = proc.allocate_tls();
     let proc = proc.apply_relocations()?;
     let proc = proc.initialize_tls();

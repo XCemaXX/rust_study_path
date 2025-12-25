@@ -175,6 +175,22 @@ impl Process<Loading> {
         rels.extend(file.read_rela_entries()?);
         rels.extend(file.read_jmp_rel_entries()?);
 
+        let mut initializers = Vec::new();
+        if let Some(init) = file.dynamic_entry(delf::DynamicTag::Init) {
+            let init = init + base;
+            initializers.push(init);
+        }
+
+        if let Some(init_array) = file.dynamic_entry(delf::DynamicTag::InitArray) {
+            if let Some(init_array_sz) = file.dynamic_entry(delf::DynamicTag::InitArraySz) {
+                let init_array = base + init_array;
+                let n = init_array_sz.0 as usize / std::mem::size_of::<delf::Addr>();
+
+                let inits: &[delf::Addr] = unsafe { init_array.as_slice(n) };
+                initializers.extend(inits.iter().map(|&init| init + base));
+            }
+        }
+
         let object = Object {
             path: path.clone(),
             base,
@@ -184,6 +200,7 @@ impl Process<Loading> {
             syms,
             sym_map,
             rels,
+            initializers,
         };
 
         let index = loader.objects.len();
@@ -264,6 +281,7 @@ impl Process<Loading> {
             block.push(0_u8);
         }
 
+        // TODO. Maybe need to improve tls, dtv...
         let _tcb = block.extend(&tcb_addr.0.to_le_bytes());
         let _dtv = block.extend(&0_u64.to_le_bytes());
         let _thread_pointer = block.extend(&tcb_addr.0.to_le_bytes());
@@ -287,6 +305,59 @@ impl Process<Loading> {
                 loader: self.state.loader,
                 tls,
             },
+        }
+    }
+
+    pub fn pathc_libc(&self) {
+        let mut stub_map = HashMap::<&str, Vec<u8>>::new();
+
+        // TODO. No such internal symbol.
+        // need to hook dladdr dlsym dlopen
+        // MAybe will be fixed with glibc’s dynamic loader usage
+        stub_map.insert(
+            "_dl_addr",
+            vec![
+                0x48, 0x31, 0xc0, // xor rax, rax
+                0xc3, // ret
+            ],
+        );
+
+        stub_map.insert(
+            "exit",
+            vec![
+                0x48, 0x31, 0xff, // xor rdi, rdi
+                0xb8, 0x3c, 0x00, 0x00, 0x00, // mov eax, 60
+                0x0f, 0x05, // syscall
+            ],
+        );
+        let pattern = "/libc.so.6";
+        let libc = match self
+            .state
+            .loader
+            .objects
+            .iter()
+            .find(|&obj| obj.path.to_string_lossy().contains(pattern))
+        {
+            Some(x) => x,
+            None => {
+                println!("Warning: could not find libc to patch!");
+                return;
+            }
+        };
+
+        for (name, instructions) in stub_map {
+            let name = Name::owned(name);
+            let sym = match libc.sym_map.get(&name) {
+                Some(sym) => ObjectSym { obj: libc, sym },
+                None => {
+                    println!("expected to find symbol {:?} in {:?}", name, libc.path);
+                    continue;
+                }
+            };
+            println!("Patching libc funtion {:?} ({:?})", sym.value(), name);
+            unsafe {
+                sym.value().write(&instructions);
+            }
         }
     }
 }
@@ -314,7 +385,11 @@ impl ProcessState for Relocated {
 }
 
 impl Process<TlsAllocated> {
-    fn apply_relocation(&self, objrel: ObjectRel) -> Result<(), RelocationError> {
+    fn apply_relocation<'a>(
+        &self,
+        objrel: ObjectRel<'a>,
+        group: RelocGroup,
+    ) -> Result<Option<ObjectRel<'a>>, RelocationError> {
         use delf::RelType as RT;
         let ObjectRel { obj, rel } = objrel;
         let reltype = rel.r#type;
@@ -328,7 +403,7 @@ impl Process<TlsAllocated> {
         let ignore_self = matches!(reltype, RT::Copy);
 
         let found = if rel.sym == 0 {
-            ResolvedSym::Undefined
+            obj.symzero()
         } else {
             match self.lookup_symbol(&wanted, ignore_self) {
                 undef @ ResolvedSym::Undefined => match wanted.sym.sym.bind {
@@ -338,6 +413,12 @@ impl Process<TlsAllocated> {
                 defined => defined,
             }
         };
+
+        if let RelocGroup::Direct = group {
+            if reltype == RT::Relative || found.is_indirect() {
+                return Ok(Some(objrel));
+            }
+        }
 
         match reltype {
             RT::_64 => unsafe {
@@ -387,19 +468,28 @@ impl Process<TlsAllocated> {
                 ));
             }
         }
-        Ok(())
+        Ok(None)
     }
 
     pub fn apply_relocations(self) -> Result<Process<Relocated>, RelocationError> {
-        let rels = self
+        let mut rels: Vec<_> = self
             .state
             .loader
             .objects
             .iter()
             .rev()
-            .flat_map(|obj| obj.rels.iter().map(move |rel| ObjectRel { obj, rel }));
-        for rel in rels {
-            self.apply_relocation(rel)?;
+            .flat_map(|obj| obj.rels.iter().map(move |rel| ObjectRel { obj, rel }))
+            .collect();
+
+        for &group in &[RelocGroup::Direct, RelocGroup::Indirect] {
+            println!("Applying {:?} relocations ({} left)", group, rels.len());
+            rels = rels
+                .into_iter()
+                .map(|objrel| self.apply_relocation(objrel, group))
+                .collect::<Result<Vec<_>, _>>()?
+                .into_iter()
+                .filter_map(|x| x)
+                .collect();
         }
         let res = Process {
             state: Relocated {
@@ -526,9 +616,20 @@ impl Process<Protected> {
         let exec = &self.state.loader.objects[opts.exec_index];
         let entry_point = exec.file.entry_point + exec.base;
         let stack = Self::build_stack(opts);
+        let initializers = self.initializers();
+
+        let argc = opts.args.len() as i32;
+        let mut argv: Vec<_> = opts.args.iter().map(|x| x.as_ptr()).collect();
+        argv.push(std::ptr::null());
+        let mut envp: Vec<_> = opts.env.iter().map(|x| x.as_ptr()).collect();
+        envp.push(std::ptr::null());
 
         unsafe {
             set_fs(self.state.tls.tcb_addr.0);
+            #[allow(clippy::clippy::needless_range_loop)]
+            for i in 0..initializers.len() {
+                call_init(initializers[i].1, argc, argv.as_ptr(), envp.as_ptr());
+            }
             jmp(entry_point.as_ptr(), stack.as_ptr(), stack.len())
         }
     }
@@ -554,6 +655,16 @@ impl<S: ProcessState> Process<S> {
             }
         }
         ResolvedSym::Undefined
+    }
+
+    fn initializers(&self) -> Vec<(&Object, delf::Addr)> {
+        self.state
+            .loader()
+            .objects
+            .iter()
+            .rev()
+            .flat_map(|obj| obj.initializers.iter().map(move |&init| (obj, init)))
+            .collect()
     }
 }
 
@@ -603,6 +714,13 @@ unsafe fn set_fs(addr: u64) {
     }
 }
 
+#[inline(never)]
+unsafe fn call_init(addr: delf::Addr, argc: i32, argv: *const *const i8, envp: *const *const i8) {
+    let init: extern "C" fn(argc: i32, argv: *const *const i8, envp: *const *const i8) =
+        unsafe { std::mem::transmute(addr.0) };
+    init(argc, argv, envp);
+}
+
 #[derive(Debug)]
 pub struct Object {
     #[allow(unused)]
@@ -620,6 +738,17 @@ pub struct Object {
     sym_map: MultiMap<Name, NamedSym>,
     #[debug(skip)]
     pub rels: Vec<delf::Rela>,
+    #[debug(skip)]
+    pub initializers: Vec<delf::Addr>,
+}
+
+impl Object {
+    fn symzero(&self) -> ResolvedSym<'_> {
+        ResolvedSym::Defined(ObjectSym {
+            obj: &self,
+            sym: &self.syms[0],
+        })
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -630,7 +759,14 @@ struct ObjectSym<'a> {
 
 impl ObjectSym<'_> {
     fn value(&self) -> delf::Addr {
-        self.obj.base + self.sym.sym.value
+        let addr = self.sym.sym.value + self.obj.base;
+        match self.sym.sym.r#type {
+            delf::SymType::IFunc => unsafe {
+                let src: extern "C" fn() -> delf::Addr = std::mem::transmute(addr);
+                src()
+            },
+            _ => addr,
+        }
     }
 }
 
@@ -654,6 +790,13 @@ impl ResolvedSym<'_> {
             ResolvedSym::Undefined => 0,
         }
     }
+
+    fn is_indirect(&self) -> bool {
+        match self {
+            Self::Undefined => false,
+            Self::Defined(sym) => matches!(sym.sym.sym.r#type, delf::SymType::IFunc),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -666,6 +809,12 @@ impl ObjectRel<'_> {
     fn addr(&self) -> delf::Addr {
         self.obj.base + self.rel.offset
     }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum RelocGroup {
+    Direct,
+    Indirect,
 }
 
 #[derive(Debug)]

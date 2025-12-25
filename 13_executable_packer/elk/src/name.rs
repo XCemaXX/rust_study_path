@@ -25,7 +25,6 @@ impl Name {
         }
     }
 
-    #[allow(dead_code)]
     pub fn owned<T: Into<Vec<u8>>>(v: T) -> Self {
         Self::Owned(v.into())
     }
