@@ -90,6 +90,10 @@ pub enum DynamicTag {
     Flags = 30,
     PreInitArray = 32,
     PreInitArraySZ = 33,
+    SymTabShndx = 34,
+    RelrSz = 35,
+    Relr = 36,
+    RelrEnt = 37,
     LoOs = 0x60000000,
     HiOs = 0x6fffffff,
     LoProc = 0x70000000,
@@ -101,6 +105,8 @@ pub enum DynamicTag {
     VerDef = 0x6ffffffc,
     VerDefNum = 0x6ffffffd,
     VerNeed = 0x6ffffffe,
+    X8664Unwind = 0x70000001,
+    X8664Reserved1 = 0x70000003,
 }
 
 impl_parse_for_enum!(DynamicTag, le_u64);

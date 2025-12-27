@@ -103,3 +103,5 @@ $3 = 0x7ffff7f48d10
 ```
 stage14.22: `ls`, `nano --help` work but not `nano`. Tested on Ubuntu22 with GLIBC 2.35
 Need to mock `_rtld_global` and `setlocale`.
+stage14.24: `ls`, `nano --help` work on Ubuntu24 with GLIBC 2.39
+Need to add compressed Relr

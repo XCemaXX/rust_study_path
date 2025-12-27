@@ -177,6 +177,9 @@ impl Process<Loading> {
         rels.extend(file.read_rela_entries()?);
         rels.extend(file.read_jmp_rel_entries()?);
 
+        // DT_RELR: "compressed relative relocations" used by modern glibc/ld-linux.
+        let relr = file.read_relr_vaddrs()?;
+
         let mut initializers = Vec::new();
         if let Some(init) = file.dynamic_entry(delf::DynamicTag::Init) {
             let init = init + base;
@@ -202,6 +205,7 @@ impl Process<Loading> {
             syms,
             sym_map,
             rels,
+            relr,
             initializers,
         };
 
@@ -508,6 +512,13 @@ impl Process<TlsAllocated> {
         }
     }
 
+    unsafe fn apply_relr_at(obj: &Object, offset: delf::Addr) {
+        let loc = obj.base + offset;
+        // Addend is stored at the relocation location (REL-style). Apply base.
+        let old: u64 = unsafe { std::ptr::read_unaligned(loc.as_ptr::<u64>()) };
+        unsafe { loc.set(old.wrapping_add(obj.base.0)) };
+    }
+
     fn apply_relocation<'a>(
         &self,
         objrel: ObjectRel<'a>,
@@ -595,6 +606,13 @@ impl Process<TlsAllocated> {
     }
 
     pub fn apply_relocations(self) -> Result<Process<Relocated>, RelocationError> {
+        // Apply DT_RELR for all objects first: it initializes lots of pointers in modern glibc/ld-linux.
+        for obj in &self.state.loader.objects {
+            for &offset in &obj.relr {
+                unsafe { Self::apply_relr_at(obj, offset) };
+            }
+        }
+
         let mut rels: Vec<_> = self
             .state
             .loader
@@ -865,6 +883,8 @@ pub struct Object {
     sym_map: MultiMap<Name, NamedSym>,
     #[debug(skip)]
     pub rels: Vec<delf::Rela>,
+    #[debug(skip)]
+    pub relr: Vec<delf::Addr>,
     #[debug(skip)]
     pub initializers: Vec<delf::Addr>,
 }

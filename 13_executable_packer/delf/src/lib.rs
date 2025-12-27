@@ -35,6 +35,40 @@ impl<I> File<I>
 where
     I: AsRef<[u8]>,
 {
+    /// Decode a DT_RELR / Elf64_Relr table (raw `u64` words) into relocation offsets (virtual
+    /// addresses).
+    fn decode_relr_vaddrs(relr: &[u64]) -> Vec<Addr> {
+        // Format per DT_RELR / Elf64_Relr:
+        // - Even entries: an address A, relocate A, then advance by word size.
+        // - Odd entries: a bitmap for the next (word_bits-1) addresses starting at `where`.
+        const WORD_SIZE: u64 = 8;
+        const BITS_PER_WORD: u64 = 64;
+        const BITMAP_BITS: u64 = BITS_PER_WORD - 1;
+
+        let mut out = Vec::new();
+        let mut where_addr: u64 = 0;
+
+        for &entry in relr {
+            if (entry & 1) == 0 {
+                where_addr = entry;
+                out.push(Addr(where_addr));
+                where_addr = where_addr.wrapping_add(WORD_SIZE);
+            } else {
+                // Bits 1..63 correspond to relocations at where_addr + i*WORD_SIZE (i=0..62)
+                let bitmap = entry >> 1;
+                for i in 0..BITMAP_BITS {
+                    if (bitmap & (1u64 << i)) != 0 {
+                        let a = where_addr.wrapping_add(i.wrapping_mul(WORD_SIZE));
+                        out.push(Addr(a));
+                    }
+                }
+                where_addr = where_addr.wrapping_add(BITMAP_BITS.wrapping_mul(WORD_SIZE));
+            }
+        }
+
+        out
+    }
+
     pub fn parse_or_print_error(input: I) -> Option<Self> {
         match FileContents::parse(input.as_ref()) {
             Ok((_, contents)) => Some(File { input, contents }),
@@ -92,6 +126,61 @@ where
     /// Read relocation entries from the table pointed to by `DynamicTag::JmpRel`
     pub fn read_jmp_rel_entries(&self) -> Result<Vec<Rela>, ReadRelaError> {
         self.read_relocations(DynamicTag::JmpRel, DynamicTag::PltRelSz)
+    }
+
+    /// Read a dynamic table referenced by `(addr_tag, size_tag)` and return its bytes.
+    fn dynamic_table_slice(
+        &self,
+        addr_tag: DynamicTag,
+        size_tag: DynamicTag,
+        seg_err: fn() -> ReadRelaError,
+    ) -> Result<Option<&[u8]>, ReadRelaError> {
+        let Some(addr) = self.dynamic_entry(addr_tag) else {
+            return Ok(None);
+        };
+        let len = self.get_dynamic_entry(size_tag)?;
+        if len.0 == 0 {
+            return Ok(None);
+        }
+        let bytes = self.mem_slice(addr, len.into()).ok_or_else(seg_err)?;
+        Ok(Some(bytes))
+    }
+
+    /// Read compressed relative relocations (DT_RELR / Elf64_Relr).
+    ///
+    /// Returns the raw `u64` entries of the RELR table. The caller is responsible for
+    /// interpreting the bitmap encoding.
+    pub fn read_relr_entries(&self) -> Result<Vec<u64>, ReadRelaError> {
+        use ReadRelaError as E;
+
+        let Some(bytes) =
+            self.dynamic_table_slice(DynamicTag::Relr, DynamicTag::RelrSz, || E::RelrSegmentNotFound)?
+        else {
+            return Ok(Vec::new());
+        };
+
+        if bytes.len() % 8 != 0 {
+            return Err(E::ParsingError(format!(
+                "DT_RELR size is not a multiple of 8 (got {})",
+                bytes.len()
+            )));
+        }
+
+        Ok(bytes
+            .chunks_exact(8)
+            .map(|c| u64::from_le_bytes(c.try_into().expect("chunk size is 8")))
+            .collect())
+    }
+
+    /// Read compressed relative relocations (DT_RELR) and decode them into the list of
+    /// relocation offsets (virtual addresses).
+    ///
+    /// Note: RELR's addend is stored at the relocation location (REL-style). Converting to
+    /// full `Rela` entries requires a loader/runtime view of memory, so this API only returns
+    /// offsets.
+    pub fn read_relr_vaddrs(&self) -> Result<Vec<Addr>, ReadRelaError> {
+        let raw = self.read_relr_entries()?;
+        Ok(Self::decode_relr_vaddrs(&raw))
     }
 
     /// Read symbols from the given section (internal)
@@ -162,16 +251,10 @@ where
     ) -> Result<Vec<Rela>, ReadRelaError> {
         use ReadRelaError as E;
 
-        let Some(addr) = self.dynamic_entry(addr_tag) else {
+        let Some(i) = self.dynamic_table_slice(addr_tag, size_tag, || E::RelaSegmentNotFound)? else {
             return Ok(Vec::new());
         };
-
-        let len = self.get_dynamic_entry(size_tag)?;
-
-        let i = self
-            .mem_slice(addr, len.into())
-            .ok_or(E::RelaSegmentNotFound)?;
-        let n = len.0 as usize / Rela::SIZE;
+        let n = i.len() / Rela::SIZE;
 
         match multi::many_m_n(n, n, Rela::parse).parse(i) {
             Ok((_, rela_entires)) => Ok(rela_entires),
@@ -362,6 +445,8 @@ pub enum ReadRelaError {
     DynamicEntryNotFound(#[from] GetDynamicEntryError),
     #[error("Rela segment not found")]
     RelaSegmentNotFound,
+    #[error("Relr segment not found")]
+    RelrSegmentNotFound,
     #[error("Parsing error: {0}")]
     ParsingError(String),
 }
