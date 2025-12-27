@@ -27,6 +27,7 @@ pub struct Loader {
     pub objects: Vec<Object>,
     pub objects_by_path: HashMap<PathBuf, usize>,
     pub search_path: Vec<PathBuf>,
+    fake_ctype: Box<FakeCtype>,
 }
 
 pub struct Loading {
@@ -47,6 +48,7 @@ impl Process<Loading> {
                     objects: Vec::new(),
                     objects_by_path: HashMap::new(),
                     search_path: vec!["/usr/lib".into(), "/usr/lib/x86_64-linux-gnu/".into()],
+                    fake_ctype: FakeCtype::new(),
                 },
             },
         }
@@ -311,11 +313,35 @@ impl Process<Loading> {
     pub fn pathc_libc(&self) {
         let mut stub_map = HashMap::<&str, Vec<u8>>::new();
 
-        // TODO. No such internal symbol.
-        // need to hook dladdr dlsym dlopen
-        // MAybe will be fixed with glibc’s dynamic loader usage
+        // No such internal symbol in newer glibc
         stub_map.insert(
             "_dl_addr",
+            vec![
+                0x48, 0x31, 0xc0, // xor rax, rax
+                0xc3, // ret
+            ],
+        );
+
+        // Newer glibc exports dladdr/dladdr1 from libc (ptmalloc_init uses dl_addr internally).
+        stub_map.insert(
+            "dladdr",
+            vec![
+                0x48, 0x31, 0xc0, // xor rax, rax
+                0xc3, // ret
+            ],
+        );
+        stub_map.insert(
+            "dladdr1",
+            vec![
+                0x48, 0x31, 0xc0, // xor rax, rax
+                0xc3, // ret
+            ],
+        );
+
+        // Minimal hack: bypass locale initialization (otherwise glibc hits TLS/TSD assumptions
+        // we don't fully implement yet, and crashes in read_alias_file).
+        stub_map.insert(
+            "setlocale",
             vec![
                 0x48, 0x31, 0xc0, // xor rax, rax
                 0xc3, // ret
@@ -359,6 +385,48 @@ impl Process<Loading> {
                 sym.value().write(&instructions);
             }
         }
+
+        // `__ctype_*_loc()` must return T **. Redirect them to our own static tables
+        // to keep ctype users working with locale support stubbed out.
+        let ctype_table = &self.state.loader.fake_ctype;
+        let ctype_fixups = [
+            ("__ctype_b_loc", &ctype_table.b_ptr as *const _ as *const ()),
+            (
+                "__ctype_tolower_loc",
+                &ctype_table.tolower_ptr as *const _ as *const (),
+            ),
+            (
+                "__ctype_toupper_loc",
+                &ctype_table.toupper_ptr as *const _ as *const (),
+            ),
+        ];
+
+        fn make_ret_ptr_stub(ptr: *const ()) -> Vec<u8> {
+            let addr = ptr as u64;
+            let mut code = Vec::with_capacity(11);
+            code.extend([0x48, 0xB8]); // movabs rax, imm64
+            code.extend(addr.to_le_bytes());
+            code.push(0xC3); // ret
+            code
+        }
+
+        for (name, ret_ptr) in ctype_fixups {
+            let name = Name::owned(name);
+            let sym = match libc.sym_map.get(&name) {
+                Some(sym) => ObjectSym { obj: libc, sym },
+                None => continue,
+            };
+            let code = make_ret_ptr_stub(ret_ptr);
+            println!(
+                "Patching libc function {:?} ({:?}) -> return fake ctype ptr {:?}",
+                sym.value(),
+                name,
+                delf::Addr(ret_ptr as u64),
+            );
+            unsafe {
+                sym.value().write(&code);
+            }
+        }
     }
 }
 
@@ -385,6 +453,61 @@ impl ProcessState for Relocated {
 }
 
 impl Process<TlsAllocated> {
+    fn bootstrap_rtld_global(&self) {
+        // On modern glibc, `ld-linux` defines `_rtld_global`, which is normally
+        // initialized very early during rtld startup.
+        //
+        // In `elk`, ld-linux is loaded as a regular shared object and its entrypoint
+        // is never executed, so `_rtld_global` remains zero-initialized and libc
+        // crashes extremely early (e.g. in `__libc_start_main_impl`).
+        //
+        // Minimal startup hack: bring `_rtld_global` into a minimally valid state
+        // so libc can proceed past early initialization.
+        let name_global = Name::owned("_rtld_global");
+
+        fn find_defined<'a>(obj: &'a Object, name: &Name) -> Option<&'a NamedSym> {
+            obj.sym_map
+                .get_vec(name)?
+                .iter()
+                .find(|sym| !sym.sym.shndx.is_undef())
+        }
+
+        // Many objects reference `_rtld_global` as an undefined symbol (e.g. libc),
+        // but only ld-linux actually defines it. We must locate the defining object.
+        let Some((obj_base, global_sym)) = self.state.loader.objects.iter().find_map(|obj| {
+            let global = find_defined(obj, &name_global)?;
+            Some((obj.base, global))
+        }) else {
+            return;
+        };
+
+        if global_sym.sym.size == 0 {
+            return;
+        }
+        let global_addr = obj_base + global_sym.sym.value;
+
+        // On this glibc, libc treats `_rtld_global` as a handle to some deeper structure:
+        // it loads `_rtld_global` from the GOT, then does `mov (%r15), %r14` and uses `r14`
+        // as a base pointer. If the first qword is null, libc crashes immediately.
+        //
+        // Minimal hack: Point it back to itself to ensure a non-NULL base pointer.
+        unsafe {
+            let first: u64 = std::ptr::read_unaligned(global_addr.as_ptr());
+            if first == 0 {
+                global_addr.set(global_addr.0);
+            }
+        }
+
+        // More minimal hardening for modern glibc startup:
+        // `__libc_start_main_impl` may call function pointers derived from
+        // `_rtld_global + 0xa0` / `_rtld_global + 0x108`.
+        // Setting them to null makes libc take the "skip" paths.
+        unsafe {
+            (global_addr + delf::Addr(0xa0)).set::<u64>(0);
+            (global_addr + delf::Addr(0x108)).set::<u64>(0);
+        }
+    }
+
     fn apply_relocation<'a>(
         &self,
         objrel: ObjectRel<'a>,
@@ -491,6 +614,10 @@ impl Process<TlsAllocated> {
                 .filter_map(|x| x)
                 .collect();
         }
+
+        // After relocations, initialize ld-linux internal global state enough for libc startup.
+        self.bootstrap_rtld_global();
+
         let res = Process {
             state: Relocated {
                 loader: self.state.loader,
@@ -1016,4 +1143,49 @@ pub struct Tls {
     #[allow(unused)]
     block: Vec<u8>,
     tcb_addr: delf::Addr,
+}
+
+#[repr(C)]
+struct FakeCtype {
+    b_table: [u16; 256],
+    b_ptr: *const u16,
+
+    tolower_table: [i32; 256],
+    tolower_ptr: *const i32,
+
+    toupper_table: [i32; 256],
+    toupper_ptr: *const i32,
+}
+
+impl FakeCtype {
+    fn new() -> Box<Self> {
+        let mut c = Box::new(Self {
+            b_table: [0; 256],
+            b_ptr: std::ptr::null(),
+
+            tolower_table: [0; 256],
+            tolower_ptr: std::ptr::null(),
+
+            toupper_table: [0; 256],
+            toupper_ptr: std::ptr::null(),
+        });
+
+        // __ctype_b: всё printable ASCII
+        const _ISPRINT: u16 = 0x40;
+        for i in 0x20u8..=0x7eu8 {
+            c.b_table[i as usize] = _ISPRINT;
+        }
+
+        // tolower / toupper — identity
+        for i in 0..256 {
+            c.tolower_table[i] = i as i32;
+            c.toupper_table[i] = i as i32;
+        }
+
+        c.b_ptr = c.b_table.as_ptr();
+        c.tolower_ptr = c.tolower_table.as_ptr();
+        c.toupper_ptr = c.toupper_table.as_ptr();
+
+        c
+    }
 }

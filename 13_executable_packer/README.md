@@ -101,3 +101,5 @@ $3 = 0x7ffff7f48d10
    0x7ffff77f570a <read_alias_file+282>:        mov    %rdx,%rax
 => 0x7ffff77f570d <read_alias_file+285>:        testb  $0x20,0x1(%rsi,%rdx,2)
 ```
+stage14.22: `ls`, `nano --help` work but not `nano`. Tested on Ubuntu22 with GLIBC 2.35
+Need to mock `_rtld_global` and `setlocale`.
