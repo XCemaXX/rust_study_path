@@ -105,3 +105,5 @@ stage14.22: `ls`, `nano --help` work but not `nano`. Tested on Ubuntu22 with GLI
 Need to mock `_rtld_global` and `setlocale`.
 stage14.24: `ls`, `nano --help` work on Ubuntu24 with GLIBC 2.39
 Need to add compressed Relr
+
+stage15: need to use "build-std". `rlibc`, `compiler_builtins` and `#![feature(lang_items)]` complain about `cmp`, `strlen`, `bcmp` etc. symbols.
