@@ -10,4 +10,5 @@ rustflags = [
     "-C", "link-arg=-nostartfiles",
     "-C", "link-arg=-nodefaultlibs",
     "-C", "link-arg=-static",
+    "-C", "split-debuginfo=unpacked"
 ]

@@ -1,5 +1,5 @@
 use crate::{
-    error::EncoreEror,
+    error::EncoreError,
     syscall::{self, FileDescriptor, MmapFlags, MmapProt},
 };
 
@@ -42,19 +42,19 @@ impl MmapOptions {
         self
     }
 
-    pub fn map(&mut self) -> Result<u64, EncoreEror> {
+    pub fn map(&mut self) -> Result<u64, EncoreError> {
         let mut flags = self.flags;
 
         if let Some(at) = &self.at {
             if !is_aligned(*at) {
-                return Err(EncoreEror::MmapMemUnaligned(*at));
+                return Err(EncoreError::MmapMemUnaligned(*at));
             }
             flags.insert(MmapFlags::FIXED);
         }
 
         if let Some(file) = &self.file {
             if !is_aligned(file.offset) {
-                return Err(EncoreEror::MmapFileUnaligned(file.offset));
+                return Err(EncoreError::MmapFileUnaligned(file.offset));
             }
             flags.remove(MmapFlags::ANONYMOUS);
         }
@@ -64,7 +64,7 @@ impl MmapOptions {
 
         let res = unsafe { syscall::mmap(addr, self.len, self.prot, flags, file.fd, file.offset) };
         if res as i64 == -1 {
-            return Err(EncoreEror::MmapFailed);
+            return Err(EncoreError::MmapFailed);
         }
         Ok(res)
     }

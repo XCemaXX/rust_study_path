@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-    "encore", "minipak",
+    "encore", "minipak", "pixie", "stage1",
 ]
 
 [profile.dev]
@@ -11,3 +11,7 @@ panic = "abort"
 debug = true
 lto = "thin"
 panic = "abort"
+
+[profile.embed]
+inherits = "release"
+strip = "symbols"

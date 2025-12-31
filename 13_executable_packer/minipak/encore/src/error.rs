@@ -3,7 +3,7 @@ use derive_more::Display;
 use alloc::string::String;
 
 #[derive(Debug, Display)]
-pub enum EncoreEror {
+pub enum EncoreError {
     #[display("Could not open file {_0}")]
     Open(String),
     #[display("Could not write to file {_0}")]

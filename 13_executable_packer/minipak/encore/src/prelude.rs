@@ -1,10 +1,12 @@
 pub use crate::{
-    error::EncoreEror,
+    env::*,
+    error::EncoreError,
     fs::File,
     items::init_allocator,
     memmap::MmapOptions,
     println,
     syscall::{self, MmapFlags, MmapProt, OpenFlags},
+    utils::NullTerminated,
 };
 pub use alloc::{
     fmt::Write,

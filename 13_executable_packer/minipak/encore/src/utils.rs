@@ -24,3 +24,33 @@ impl fmt::Write for Stdout {
         Ok(())
     }
 }
+
+pub trait NullTerminated
+where
+    Self: Sized,
+{
+    /// Turns a pointer into a byte slice, assuming it finds a
+    /// null terminator.
+    ///
+    /// # Safety
+    /// Dereferences an arbitrary pointer.
+    unsafe fn null_terminated(self) -> &'static [u8];
+
+    /// # Safety
+    /// Dereferences an arbitrary pointer.
+    unsafe fn cstr(self) -> &'static str {
+        core::str::from_utf8(unsafe { self.null_terminated() }).unwrap()
+    }
+}
+
+impl NullTerminated for *const u8 {
+    unsafe fn null_terminated(self) -> &'static [u8] {
+        unsafe {
+            let mut j = 0;
+            while *self.add(j) != 0 {
+                j += 1;
+            }
+            core::slice::from_raw_parts(self, j)
+        }
+    }
+}
