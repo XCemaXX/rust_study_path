@@ -107,3 +107,8 @@ stage14.24: `ls`, `nano --help` work on Ubuntu24 with GLIBC 2.39
 Need to add compressed Relr
 
 stage15: need to use "build-std". `rlibc`, `compiler_builtins` and `#![feature(lang_items)]` complain about `cmp`, `strlen`, `bcmp` etc. symbols.
+
+stage17: possible to use `samples/what.c` instead of new hello-pie.c:
+```sh
+gcc -static-pie -g what.c -o what-pie
+```

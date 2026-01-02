@@ -6,7 +6,7 @@ use crate::utils::NullTerminated;
 #[repr(C)]
 pub struct Auxv {
     typ: AuxType,
-    value: u64,
+    pub value: u64,
 }
 
 impl fmt::Debug for Auxv {

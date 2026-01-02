@@ -50,7 +50,7 @@ fn main(env: Env) -> Result<(), PixieError> {
         guest_len = guest.len();
         let compressed = lz4_flex::compress_prepend_size(guest);
         guest_compressed_len = compressed.len();
-        output.write_all(&compressed[..])?;
+        output.write_all(&compressed)?;
     }
 
     output.align(PAGE_SIZE)?;

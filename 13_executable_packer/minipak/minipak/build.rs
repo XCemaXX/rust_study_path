@@ -6,6 +6,8 @@ fn main() {
 
 fn cargo_build(path: &str) {
     println!("cargo:rerun-if-changed={path}");
+    println!("cargo:rerun-if-changed=../pixie");
+    println!("cargo:rerun-if-changed=../encore");
     let target_dir = format!("{}/embeds", std::env::var("OUT_DIR").unwrap());
 
     let output = Command::new("cargo")
@@ -23,8 +25,8 @@ fn cargo_build(path: &str) {
         panic!(
             "Building {} failed.\nStdout: {}\nStderr: {}",
             path,
-            String::from_utf8_lossy(&output.stdout[..]),
-            String::from_utf8_lossy(&output.stderr[..]),
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr),
         )
     }
 }
