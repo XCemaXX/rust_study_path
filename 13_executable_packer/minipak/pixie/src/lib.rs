@@ -210,8 +210,6 @@ impl<'a> MappedObject<'a> {
         }
 
         let res = map_opts.map()?;
-        // ??????????????
-        //let base_offset = if is_relocatable { 0 } else { res };
         let base_offset = if is_relocatable { res } else { 0 };
         let mem = unsafe { core::slice::from_raw_parts_mut(res as _, mem_len as _) };
         let mut mapped = Self {
@@ -246,7 +244,7 @@ impl<'a> MappedObject<'a> {
     /// means it can be mapped anywhere.
     pub fn is_relocatable(&self) -> bool {
         self.hull.start == 0
-        // self.base_offset == 0 // ??? in guide. But we changed it
+        // self.base_offset == 0 // in guide. But It should be changed
     }
 
     /// Returns the offset between the object's base and where we loaded it

@@ -8,8 +8,8 @@ extern crate encore;
 use encore::prelude::*;
 use error::Error;
 use pixie::{
-    ElfClass, ElfMachine, ElfType, EndMarker, Endianness, Manifest, MappedObject, Object,
-    ObjectHeader, OsAbi, ProgramHeader, Resource, SegmentType, Writer, align_hull,
+    align_hull, ElfClass, ElfMachine, ElfType, EndMarker, Endianness, Manifest, MappedObject,
+    Object, ObjectHeader, OsAbi, ProgramHeader, Resource, SegmentType, Writer,
 };
 
 mod cli;
@@ -141,13 +141,17 @@ fn relink_stage1(guest_hull: Range<u64>, writer: &mut Writer) -> Result<(), Erro
     };
     writer.write_deku(&out_header)?;
 
-    let static_headers = load_segs.iter().map(|seg| {
+    // We keep stage1's original PT_LOAD file offsets, only shifting vaddr/paddr by `base_offset`.
+    // This keeps the ELF invariant `p_offset % p_align == p_vaddr % p_align` intact.
+    //
+    // Modern toolchains often produce a PT_LOAD at file offset 0 (vaddr 0) containing important
+    // data (.dynsym/.rela.dyn/.rodata/etc). Our output ELF header + program headers also live at
+    // the beginning of the file, so when copying that first segment we must avoid overwriting the
+    // headers. We handle that in the copy loop below by skipping the prefix up to `copy_start_offset`.
+    for seg in &load_segs {
         let mut ph = seg.header().clone();
         ph.vaddr += base_offset;
         ph.paddr += base_offset;
-        ph
-    });
-    for ph in static_headers {
         writer.write_deku(&ph)?;
     }
 
@@ -200,22 +204,56 @@ fn relink_stage1(guest_hull: Range<u64>, writer: &mut Writer) -> Result<(), Erro
 
         println!("Copying stage1 segments...");
         let copy_start_offset = writer.offset();
+
+        // If stage1 has a PT_LOAD at file offset 0 (common for modern toolchains),
+        // we rely on being able to skip only a small prefix (our new ELF header/PHDR)
+        // and still copy the remaining tail of that segment.
+        //
+        // If the skipped prefix fully covers the segment, stage1 will miss critical
+        // data (.dynsym/.rela*/.rodata) and will crash very early. In that case we
+        // must fall back to repacking PT_LOAD offsets (the more complex path).
+        if let Some(zero) = load_segs.iter().find(|seg| seg.header().offset == 0) {
+            let filesz = zero.header().filesz;
+            assert!(
+                copy_start_offset < filesz,
+                "stage1 first PT_LOAD starts at offset 0 but is too small to survive relinking: \
+                copy_start_offset=0x{copy_start_offset:x} >= filesz=0x{filesz:x}. \
+                Need to repack PT_LOAD offsets (the more complex path)."
+            );
+        }
+
+        // Copy `[copy_offset..ph.offset+filesz)` from this segment.
+        // Usually only the first PT_LOAD has `ph.offset == 0`, so this neatly avoids
+        // clobbering the output ELF header/program headers.
         println!("copy_start_offset = 0x{:x}", copy_start_offset);
-        let copied_segments = load_segs
-            .into_iter()
-            .filter(move |seg| seg.header().offset > copy_start_offset);
+        let copied_segments = load_segs.into_iter().filter_map(|seg| {
+            let ph = seg.header();
 
-        for cp_seg in copied_segments {
-            let ph = cp_seg.header();
+            // Start copying either from the segment's file offset
+            // or from copy_start_offset if the segment overlaps the new ELF header.
+            let copy_offset = ph.offset.max(copy_start_offset);
+
+            // If the entire segment is covered by the skipped prefix, there is
+            // nothing to copy.
+            if copy_offset >= ph.offset + ph.filesz {
+                return None;
+            }
             println!("copying {ph:?}");
+            Some((ph, copy_offset))
+        });
 
-            // Pad space between segments with zeros:
-            writer.pad(ph.offset - writer.offset())?;
+        for (ph, copy_offset) in copied_segments {
+            // Pad space up to where we actually start copying
+            writer.pad(copy_offset - writer.offset())?;
 
-            let start = ph.vaddr;
-            let len = ph.filesz;
+            // Translate file offset -> virtual address inside this PT_LOAD:
+            let delta = copy_offset - ph.offset;
+            let start = ph.vaddr + delta;
+            let len = ph.filesz - delta;
             let end = start + len;
 
+            // `mapped` contains stage1 mapped at base 0 with relocations applied,
+            // so `vaddr_slice` expects original (pre-base_offset) virtual addresses.
             writer.write_all(mapped.vaddr_slice(start..end))?;
         }
     }

@@ -22,7 +22,7 @@ ld -shared samples/msg.o -o samples/libmsg.so
 ld --dynamic-linker /lib64/ld-linux-x86-64.so.2 -rpath '$ORIGIN' -pie samples/hello-dl.o -L samples -lmsg -o samples/hello-dl
 ```
 
-Useful commands to run:
+Useful commands to run2:
 ```sh
 cargo b -p delf -p elk && ./target/debug/elk ./13_executable_packer/samples/nodata
 ugdb ./target/debug/elk ./13_executable_packer/samples/hello-mov-pie
@@ -38,21 +38,21 @@ echo "source /path/to/13_executable_packer/elk/gdb-elk.py > ~/.gdbinit
 ```
 
 Notes:
-Env: "Ubuntu 22.04.5 LTS"
-Stage1: In nom 8.0 there is no context anymore, but it is fine. It will be fixed on stage5.
+Env: "Ubuntu 22.04.5 LTS". Rust 1.92
+Stage1: In nom 8.0 the parsing context is gone. This is acceptable here and is fixed later at stage5.
 Stage3: There is no /lib64/ld-2.30.so. On ubuntu I used /lib/x86_64-linux-gnu/ld-linux-x86-64.so.2.
-Stage5: use RUNPATH instead of RPATH
-Stage9: In glibc 2.35 I got a link to ".plt.sec" instead of ".plt". But it is fine. I saw more output in nolibc-ifunc | xxd, but got ".UH..H..M" in the end.
-Stage11: Different behavior of dynamic symbol resolution. Unlike the classic lazy-binding flow, _dl_runtime_resolve_xsavec is not involved. The PLT entry contains endbr64 followed by a direct bnd jmp through the GOT. The GOT entry is already populated, so the symbol is resolved immediately rather than via the runtime resolver.
-stage13: /bin/ls requires DTPMOD64(code: 16) relocation - can be skipped.
+Stage5: Use `RUNPATH` instead of `RPATH`.
+Stage9: With glibc 2.35 the binary links against `.plt.sec` instead of `.plt`. This difference is harmless. `nolibc-ifunc | xxd` also produces slightly different output, ending with `.UH..H..M`.
+Stage11: Dynamic symbol resolution differs from the classic lazy-binding flow. `_dl_runtime_resolve_xsavec` is not involved. The PLT entry contains `endbr64` followed by a direct bnd jmp via the GOT. The GOT entry is already populated, so symbols are resolved immediately.
+stage13: `/bin/ls` requires the DTPMOD64 relocation (type 16). This relocation can be skipped.
 
-stage14: there is no `break _dl_addr`
+stage14: There is no `break _dl_addr`
 ```
 b ptmalloc_init
 p &_rtld_global
 $1 = (struct rtld_global *) 0x7ffff7ffd040 <_rtld_global>
 ```
-So running `ls` in elk:
+When running `ls` inside `elk`, `_rtld_global` is not initialized correctly and ends up as NULL, leading to a crash inside `__libc_start_main_impl`.
 ```
 (gdb) r
 (gdb) autosym
@@ -66,7 +66,7 @@ So running `ls` in elk:
 (gdb) x/4gx $r14
 0x0:    Cannot access memory at address 0x0
 ```
-Runing just `ls`:
+Running the same binary normally initializes `_rtld_global` as expected. This difference explains the observed segfaults.
 ```
 (gdb) set stop-on-solib-events 1 # break after libc load
 (gdb) run
@@ -82,7 +82,7 @@ Runing just `ls`:
 Mapped rw-p from File("/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2")
 (Map range: 00007ffff7ffd000..00007ffff7fff000, 8 KiB total)
 ```
-In the end of a guide I tried to run `/bin/ls` or `nano`. In gdb after segfault I have r14=0, so lets hack:
+At the end of the guide, running `/bin/ls` or `nano` results in a segfault with `r14 = 0`. Manually patching `r14` to point to `_rtld_global` allows execution to continue and reveals a failure later in `setlocale`.
 ``` 
 (gdb) run
 (gdb) autosym
@@ -101,18 +101,16 @@ $3 = 0x7ffff7f48d10
    0x7ffff77f570a <read_alias_file+282>:        mov    %rdx,%rax
 => 0x7ffff77f570d <read_alias_file+285>:        testb  $0x20,0x1(%rsi,%rdx,2)
 ```
-stage14.22: `ls`, `nano --help` work but not `nano`. Tested on Ubuntu22 with GLIBC 2.35
-Need to mock `_rtld_global` and `setlocale`.
-stage14.24: `ls`, `nano --help` work on Ubuntu24 with GLIBC 2.39
-Need to add compressed Relr
+stage14.22: `ls` and `nano --help` work, but `nano` itself does not. Tested on Ubuntu 22.04 with glibc 2.35. `_rtld_global` and `setlocale` need to be mocked.
+stage14.24: `ls`, `nano --help` work on Ubuntu 24.04 with glibc 2.39. Compressed RELR relocations must be supported.
 
-stage15: need to use "build-std". `rlibc`, `compiler_builtins` and `#![feature(lang_items)]` complain about `cmp`, `strlen`, `bcmp` etc. symbols.
+stage15: `build-std` is required. `rlibc`, `compiler_builtins`, and `#![feature(lang_items)]` complain about missing symbols such as `cmp`, `strlen`, and `bcmp`.
 
-stage17: possible to use `samples/what.c` instead of new hello-pie.c:
+stage17: `samples/what.c` can be used instead of writing a new `hello-pie.c`.
 ```sh
 gcc -static-pie -g what.c -o what-pie
 ```
-stage18:
+stage18: I do not repack PT_LOAD file offsets. Modern toolchains often place the first PT_LOAD at file offset 0 and include critical data (.dynsym, .rela.dyn, .rodata). To preserve the ELF invariant `p_offset % p_align == p_vaddr % p_align`, I keep original p_offset values and only shift vaddr/paddr, copying segments while skipping the prefix occupied by the new ELF header/PHDR. Older binaries typically did not rely on a PT_LOAD@0 with essential data, so the simpler repacking approach happened to work, but it breaks with modern glibc/toolchains.
 ```sh
 wget https://github.com/gohugoio/hugo/releases/download/v0.154.2/hugo_extended_0.154.2_linux-amd64.tar.gz
 ```
