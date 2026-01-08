@@ -1,5 +1,5 @@
 [package]
-name = "stage1"
+name = "stage2"
 version = "0.1.0"
 edition = "2024"
 
@@ -9,3 +9,4 @@ crate-type = ["cdylib"]
 [dependencies]
 encore.workspace = true
 pixie.workspace = true
+lz4_flex.workspace = true

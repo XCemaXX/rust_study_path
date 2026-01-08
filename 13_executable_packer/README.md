@@ -112,3 +112,7 @@ stage17: possible to use `samples/what.c` instead of new hello-pie.c:
 ```sh
 gcc -static-pie -g what.c -o what-pie
 ```
+stage18:
+```sh
+wget https://github.com/gohugoio/hugo/releases/download/v0.154.2/hugo_extended_0.154.2_linux-amd64.tar.gz
+```

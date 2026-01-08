@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-deku = { version = "0.20.2", default-features = false, features = ["alloc"] }
-encore = { path = "../encore" }
-derive_more = { version = "2.1.1", default-features = false, features = ["display", "debug"] }
+deku = { version = "0.20.2", default-features = false, features = ["alloc", "bits"] }
+encore.workspace = true
+derive_more = { workspace = true, features = ["display", "debug"] }

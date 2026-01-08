@@ -1,7 +1,8 @@
 use std::process::Command;
 
 fn main() {
-    cargo_build("../stage1")
+    cargo_build("../stage1");
+    cargo_build("../stage2");
 }
 
 fn cargo_build(path: &str) {

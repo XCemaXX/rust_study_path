@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-encore = { path = "../encore" }
-pixie = { path = "../pixie" }
-lz4_flex = { version = "0.12.0", default-features = false, features = ["safe-encode", "safe-decode"] }
+encore.workspace = true
+pixie.workspace = true
+lz4_flex.workspace = true
+derive_more = { workspace = true, features = ["display", "debug"] }

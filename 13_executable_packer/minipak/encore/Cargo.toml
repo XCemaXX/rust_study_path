@@ -5,5 +5,5 @@ edition = "2024"
 
 [dependencies]
 bitflags = "2.10.0"
-derive_more = { version = "2.1.1", default-features = false, features = ["display"] }
+derive_more = { workspace = true, features = ["display"] }
 linked_list_allocator = "0.10.5"
