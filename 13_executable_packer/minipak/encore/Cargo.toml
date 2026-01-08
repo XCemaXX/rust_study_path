@@ -1,0 +1,9 @@
+[package]
+name = "encore"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bitflags = "2.10.0"
+derive_more = { workspace = true, features = ["display"] }
+linked_list_allocator = "0.10.5"

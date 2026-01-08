@@ -1,0 +1,9 @@
+*
+!*/
+!.gitignore
+!echidna/
+!echidna/**
+!*.c
+!*.asm
+!*.sh
+!*Makefile

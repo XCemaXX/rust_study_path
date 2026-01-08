@@ -1,0 +1,10 @@
+[package]
+name = "minipak"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+encore.workspace = true
+pixie.workspace = true
+lz4_flex.workspace = true
+derive_more = { workspace = true, features = ["display", "debug"] }

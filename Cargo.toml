@@ -67,4 +67,9 @@ members = [
     "12_cookbook/17_science",
     "12_cookbook/18_text_processing",
     "12_cookbook/19_web",
+    "13_executable_packer/delf",
+    "13_executable_packer/elk",
 ]
+
+[profile.release]
+debug = true

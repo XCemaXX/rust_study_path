@@ -1,0 +1,26 @@
+[workspace]
+resolver = "2"
+members = [
+    "encore", "minipak", "pixie", "stage1", "stage2",
+]
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+debug = true
+lto = "thin"
+panic = "abort"
+
+[profile.embed]
+inherits = "release"
+debug = true
+lto = "fat"
+strip = "symbols"
+opt-level = "s"
+
+[workspace.dependencies]
+derive_more = { version = "2.1.1", default-features = false, features = ["display", "debug"] }
+lz4_flex = { version = "0.12.0", default-features = false, features = ["safe-encode", "safe-decode"] }
+encore = { path = "encore" }
+pixie = { path =  "pixie" }
