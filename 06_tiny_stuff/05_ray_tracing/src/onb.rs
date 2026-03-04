@@ -1,6 +1,5 @@
 use crate::coords::Coords;
 
-
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Onb {
     axis: [Coords; 3],
@@ -16,9 +15,7 @@ impl Onb {
         };
         let v = Coords::unit_vector(w.cross(a));
         let u = w.cross(v);
-        Self {
-            axis: [u, v, w]
-        }
+        Self { axis: [u, v, w] }
     }
 
     pub fn transform(&self, v: Coords) -> Coords {

@@ -1,5 +1,5 @@
 fn transpose(matrix: [[i32; 3]; 3]) -> [[i32; 3]; 3] {
-    const SIZE : usize = 3; // matrix.len();
+    const SIZE: usize = 3; // matrix.len();
     let mut transposed = [[0; SIZE]; SIZE];
     for i in 0..SIZE {
         for j in 0..SIZE {

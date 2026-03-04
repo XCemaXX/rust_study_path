@@ -1,12 +1,14 @@
 use std::fmt::Display;
 
-
 fn run_with_log(call_back: impl FnOnce(i32) -> i32, arg: i32) -> i32 {
     println!("1log: func call with arg: {arg}");
     call_back(arg)
 }
 
-fn run_with_log2<Args: Display, Res, Func: FnOnce(Args) -> Res>(call_back: Func, args: Args) -> Res {
+fn run_with_log2<Args: Display, Res, Func: FnOnce(Args) -> Res>(
+    call_back: Func,
+    args: Args,
+) -> Res {
     println!("2log: func call with arg: {args}");
     call_back(args)
 }
@@ -17,7 +19,7 @@ fn run_two_times<Args, Res>(call_back: impl Fn(&Args) -> Res, args: &Args) -> (R
     (r1, r2)
 }
 
-fn run_two_times_mut(mut call_back: impl FnMut(i32)->()) {
+fn run_two_times_mut(mut call_back: impl FnMut(i32) -> ()) {
     call_back(2);
     call_back(8);
 }
@@ -45,12 +47,19 @@ fn main() {
     println!("accumulate result {}; {:?}", run_with_log(multiply, 6), vec);
 
     //
-    let fn_call2 = |(x, y): &(i32, i32)| { let r = x + y; println!("{r}"); r};
+    let fn_call2 = |(x, y): &(i32, i32)| {
+        let r = x + y;
+        println!("{r}");
+        r
+    };
     run_two_times(fn_call2, &(3, 5));
 
     //
     let mut count = 0;
-    let increment = |x| { count += x; println!("Add to counter {x}; Counter: {count}"); };
+    let increment = |x| {
+        count += x;
+        println!("Add to counter {x}; Counter: {count}");
+    };
     run_two_times_mut(increment);
     println!("Counter: {count}");
 
@@ -61,9 +70,7 @@ fn main() {
     // move in lambda
     let has_gc = {
         let no_gc = vec!["C", "C++", "Rust"];
-        move |lang: &str| -> bool {
-            !no_gc.contains(&lang)
-        }
+        move |lang: &str| -> bool { !no_gc.contains(&lang) }
     };
     let lang = "Java";
     println!("{} has garbage collector? {}", lang, has_gc(lang));

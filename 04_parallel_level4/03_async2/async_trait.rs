@@ -1,7 +1,7 @@
 use async_trait::async_trait;
+use rand::Rng;
 use std::time::Instant;
 use tokio::time::{sleep, Duration};
-use rand::Rng;
 
 #[async_trait]
 trait Sleeper {
@@ -29,10 +29,7 @@ impl Sleeper for RandomSleeper {
     }
 }
 
-async fn run_sleepers_multiple_times(
-    sleepers: Vec<Box<dyn Sleeper>>,
-    n_times: usize,
-) {
+async fn run_sleepers_multiple_times(sleepers: Vec<Box<dyn Sleeper>>, n_times: usize) {
     for i in 1..=n_times {
         println!("Running all sleepers. Iter {i}");
         for s in &sleepers {
@@ -46,8 +43,8 @@ async fn run_sleepers_multiple_times(
 #[tokio::main]
 async fn main() {
     let sleepers: Vec<Box<dyn Sleeper>> = vec![
-        Box::new(FixedSleeper {sleep_ms: 50}),
-        Box::new(FixedSleeper {sleep_ms: 100}),
+        Box::new(FixedSleeper { sleep_ms: 50 }),
+        Box::new(FixedSleeper { sleep_ms: 100 }),
         Box::new(RandomSleeper {}),
         Box::new(RandomSleeper {}),
     ];

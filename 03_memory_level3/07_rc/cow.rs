@@ -2,11 +2,11 @@ use std::{borrow::Cow, str::FromStr};
 
 fn to_lowercase<'a>(s: &'a str) -> Cow<'a, str> {
     if s.chars().all(char::is_lowercase) {
-        println!{"return without allocation link to existing string: {s}"};
+        println! {"return without allocation link to existing string: {s}"};
         Cow::Borrowed(s)
     } else {
         let low = s.to_lowercase();
-        println!{"return new owned allocation: {low}"};
+        println! {"return new owned allocation: {low}"};
         Cow::Owned(low)
     }
 }
@@ -19,5 +19,3 @@ fn main() {
     let high_res = to_lowercase(&high);
     println!("{high_res}");
 }
-
-

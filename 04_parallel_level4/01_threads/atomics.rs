@@ -1,4 +1,4 @@
-use::std::sync::atomic::{AtomicUsize, Ordering};
+use ::std::sync::atomic::{AtomicUsize, Ordering};
 
 fn main() {
     let mut counter = AtomicUsize::new(0);

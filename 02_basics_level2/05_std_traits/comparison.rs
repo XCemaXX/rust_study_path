@@ -30,9 +30,18 @@ impl PartialOrd for Citation {
 }
 
 fn main() {
-    let k1 = Citation{year: 1, author: "1".to_string()};
-    let k2 = Citation{year: 2, author: "2".to_string()};
-    let k3 = Citation{year: 3, author: "1".to_string()};
+    let k1 = Citation {
+        year: 1,
+        author: "1".to_string(),
+    };
+    let k2 = Citation {
+        year: 2,
+        author: "2".to_string(),
+    };
+    let k3 = Citation {
+        year: 3,
+        author: "1".to_string(),
+    };
     assert_eq!(k1, k3);
     assert_ne!(k1, k2);
     assert_eq!(k2, "2");

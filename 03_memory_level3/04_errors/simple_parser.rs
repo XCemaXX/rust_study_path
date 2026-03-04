@@ -16,7 +16,7 @@ enum ParserError {
 impl Error for ParserError {}
 
 impl Display for ParserError {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> { 
+    fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
         match self {
             Self::UnexpectedSymbol(c) => write!(f, "Unexpected symbol {c}"),
             Self::UnexpectedEof => write!(f, "Unexpected EOF"),
@@ -99,11 +99,9 @@ fn parse(input: &str) -> Result<Expression, ParserError> {
         };
         Ok(match tokens.next() {
             None => expr,
-            Some(Ok(Token::Operator(op))) => Expression::Operation(
-                Box::new(expr),
-                op,
-                Box::new(parse_expr(tokens)?),
-            ),
+            Some(Ok(Token::Operator(op))) => {
+                Expression::Operation(Box::new(expr), op, Box::new(parse_expr(tokens)?))
+            }
             Some(Err(e)) => return Err(e.into()),
             Some(Ok(tok)) => return Err(ParserError::UnexpectedToken(tok)),
         })

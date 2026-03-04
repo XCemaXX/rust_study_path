@@ -1,4 +1,3 @@
-
 // HyperLogLog
 // https://habr.com/ru/articles/119852/
 #![allow(dead_code)]
@@ -30,9 +29,14 @@ impl HyperLogLog {
         };
 
         let seed = rand::random::<u32>();
-        Ok(Self { words: words, 
-            m: m, k_comp: 32 - k, alpha_m: alpha_m, seed: seed, 
-            ranks: vec![0; m as usize]})
+        Ok(Self {
+            words: words,
+            m: m,
+            k_comp: 32 - k,
+            alpha_m: alpha_m,
+            seed: seed,
+            ranks: vec![0; m as usize],
+        })
     }
 
     pub fn get_words_len(&self) -> usize {
@@ -49,7 +53,7 @@ impl HyperLogLog {
         let mut e = self.alpha_m * m * m / c;
         // -- make corrections
         let pow_2_32 = (0xFFFFFFFF_u64 + 1) as f64;
-        if e <= 5.0/2.0 * m {
+        if e <= 5.0 / 2.0 * m {
             let mut v = 0;
             for i in &self.ranks {
                 v += (*i == 0) as i32;
@@ -57,9 +61,9 @@ impl HyperLogLog {
             if v > 0 {
                 e = m * (m / v as f64).ln();
             }
-        } else if e > 1.0/30.0 * pow_2_32 {
+        } else if e > 1.0 / 30.0 * pow_2_32 {
             e = -pow_2_32 * (1.0 - e / pow_2_32).ln();
-        } 
+        }
         e as usize
     }
 
@@ -87,18 +91,19 @@ impl HyperLogLog {
         // pos of first set bit
         let mut hash = hash;
         let mut r = 1_u32;
-        while (hash & 1) == 0 && r <= max { 
+        while (hash & 1) == 0 && r <= max {
             r += 1;
-            hash >>= 1; 
+            hash >>= 1;
         }
         r
     }
 
     fn hash_fnv1a(text: &str) -> u32 {
-        let mut hash  = 2166136261_u64;
+        let mut hash = 2166136261_u64;
         for c in text.chars() {
             hash ^= c as u64;
-            hash += ((hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24)) & 0xFFFFFFFF;
+            hash +=
+                ((hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24)) & 0xFFFFFFFF;
         }
         (hash & 0xFFFFFFFF) as u32
     }
@@ -112,5 +117,5 @@ impl HyperLogLog {
     } else {
         println!("Cannot get path", path.unwrap().display());
     }
-    
+
 }*/

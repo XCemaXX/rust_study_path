@@ -1,12 +1,12 @@
 #![allow(dead_code)]
 struct Point<T> {
-    x: T, 
+    x: T,
     y: T,
 }
 
 impl<T> Point<T> {
     fn new(x: T, y: T) -> Self {
-        Self{x: x, y: y}
+        Self { x: x, y: y }
     }
     fn coords(&self) -> (&T, &T) {
         (&self.x, &self.y)
@@ -15,30 +15,36 @@ impl<T> Point<T> {
 
 // #############
 fn pick<T>(b: bool, even: T, odd: T) -> T {
-    if b { even } else { odd }
+    if b {
+        even
+    } else {
+        odd
+    }
 }
 
 // #############
 #[derive(Debug, Clone)]
 struct PointClonable<T> {
-    x: T, 
+    x: T,
     y: T,
 }
 
 //fn duplicate<T: Clone + Debug>(a: T) -> (T, T) { // the same
 fn duplicate<T>(a: T) -> (T, T)
-    where T: Clone, 
+where
+    T: Clone,
 {
     (a.clone(), a.clone())
 }
 
 // #############
 // fn add_42_millions<T: Into<i32>>(x: T) -> i32 { // ~ the same
-fn add_42_millions(x: impl Into<i32>) -> i32 { // trait Into<i32> ~ cast in C++
+fn add_42_millions(x: impl Into<i32>) -> i32 {
+    // trait Into<i32> ~ cast in C++
     x.into() + 42_000_000
 }
 
-// Cannot write 
+// Cannot write
 // fn pair_of<T: std::fmt::Debug>(x: u32) -> T {
 // need auto typing, not bound
 fn pair_of(x: u32) -> impl std::fmt::Debug {
@@ -53,8 +59,8 @@ fn main() {
     let pf = Point::new(1.0, 2.0);
     println!("{:?} {:?}", pi.coords(), pf.coords());
     // duplicate(pi); //   Clone not implemented
-    let clone = duplicate(PointClonable{x:1, y:2});
-    println!("{:?}", clone); 
+    let clone = duplicate(PointClonable { x: 1, y: 2 });
+    println!("{:?}", clone);
 
     let many = add_42_millions(123_i8); //_i8 type of int
     println!("{many}");

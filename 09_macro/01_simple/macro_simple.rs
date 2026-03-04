@@ -1,4 +1,3 @@
-
 macro_rules! squared_broken {
     ($e:expr ) => {
         $e * $e
@@ -47,12 +46,20 @@ macro_rules! declare_var {
 fn main() {
     println!("{:?}", squared!(1 + 1)); // [1+1]*[1+1]. not like in C: 1+1*1+1
 
-    let sq = squared_broken!(({print!("call twice, "); 3}));
+    let sq = squared_broken!(
+        ({
+            print!("call twice, ");
+            3
+        })
+    );
     println!("{sq}");
-    let sq = squared!({print!("call once, "); 4});
+    let sq = squared!({
+        print!("call once, ");
+        4
+    });
     println!("{sq}");
-    
-    let c = gen_vector!(1+1, 23, 42);
+
+    let c = gen_vector!(1 + 1, 23, 42);
     let d = gen_vector!["1+1".to_string(), "23".to_string()];
     let double_c = gen_vector!( 1 + 1 => 23 => 42);
     println!("{c:?} {d:?} {double_c:?}");

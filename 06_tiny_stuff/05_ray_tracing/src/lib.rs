@@ -2,6 +2,7 @@ mod camera;
 mod color;
 mod coords;
 mod hit;
+mod lights;
 mod material;
 mod objects;
 mod onb;
@@ -10,7 +11,6 @@ mod ray;
 mod texture;
 mod vec3;
 mod world;
-mod lights;
 
 use core::f32;
 use std::sync::Arc;
@@ -450,11 +450,7 @@ fn cornell_smoke_scene() -> (World, Camera) {
     (world, camera_cornel())
 }
 
-fn final_scene(
-    image_width: usize,
-    samples_per_pixel: usize,
-    max_depth: usize,
-) -> (World, Camera) {
+fn final_scene(image_width: usize, samples_per_pixel: usize, max_depth: usize) -> (World, Camera) {
     let mut rng = SmallRng::from_rng(&mut rand::rng());
 
     let ground: Arc<dyn Material> = Arc::new(Lambertian::from_color(Color::new(0.48, 0.83, 0.53)));

@@ -1,5 +1,3 @@
-
-
 fn unpack_tuple(point: (i32, i32)) {
     match point {
         (0, 0) => println!("BULLSEYE"),
@@ -23,14 +21,17 @@ fn unpack_array(arr: [i32; 3]) {
 
 struct Person {
     name: String,
-    age: u32
+    age: u32,
 }
 
 fn unpack_struct(man: Person) {
     match man {
-        Person{ ref name, age } if name == "Kate" => println!("Dear Kate. Age: {age}"), //work around String
-        Person{ age: 15, name: alias } => println!("Name: {alias} with 15 age"),
-        Person{ age, .. } => println!("Unknown. Age: {age}"),
+        Person { ref name, age } if name == "Kate" => println!("Dear Kate. Age: {age}"), //work around String
+        Person {
+            age: 15,
+            name: alias,
+        } => println!("Name: {alias} with 15 age"),
+        Person { age, .. } => println!("Unknown. Age: {age}"),
     }
 }
 
@@ -45,7 +46,16 @@ fn main() {
     unpack_array([1, -2, 3]);
     unpack_array([2, -2, 3]);
 
-    unpack_struct( Person{name: "Kate".to_string(), age: 15});
-    unpack_struct( Person{name: "Tom".to_string(), age: 15});
-    unpack_struct( Person{name: "John".to_string(), age: 25});
+    unpack_struct(Person {
+        name: "Kate".to_string(),
+        age: 15,
+    });
+    unpack_struct(Person {
+        name: "Tom".to_string(),
+        age: 15,
+    });
+    unpack_struct(Person {
+        name: "John".to_string(),
+        age: 25,
+    });
 }

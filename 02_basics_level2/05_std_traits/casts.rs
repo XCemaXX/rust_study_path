@@ -1,5 +1,3 @@
-
-
 fn from_example() {
     let s = String::from("Hello");
     let addr = std::net::Ipv4Addr::from([127, 0, 0, 1]);

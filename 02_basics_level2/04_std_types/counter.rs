@@ -6,7 +6,9 @@ struct Counter<T: Eq + Hash> {
 
 impl<T: Eq + Hash> Counter<T> {
     fn new() -> Self {
-        Counter{values: HashMap::new() }
+        Counter {
+            values: HashMap::new(),
+        }
     }
 
     fn count(&mut self, value: T) {

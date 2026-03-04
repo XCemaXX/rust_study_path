@@ -27,9 +27,7 @@ impl<T> FromIterator<T> for LinkedList<T> {
 
 impl<T: Clone> Clone for LinkedList<T> {
     fn clone(&self) -> Self {
-        self.iter()
-            .cloned()
-            .collect::<LinkedList<T>>()
+        self.iter().cloned().collect::<LinkedList<T>>()
     }
 }
 

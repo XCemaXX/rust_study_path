@@ -26,10 +26,8 @@ fn result_type1(file_name: &str) -> std::result::Result<(String, usize), String>
             } else {
                 Err(String::from("Cannot read {file_name}"))
             }
-        },
-        Err(err) => {
-            Err(err.to_string())
         }
+        Err(err) => Err(err.to_string()),
     }
 }
 
@@ -48,7 +46,7 @@ fn string_type() {
     println!("s1: len = {}, cap = {}", s1.len(), s1.capacity());
 
     let mut s2 = String::with_capacity(s1.capacity() + 10);
-    s2.push_str(&s1); 
+    s2.push_str(&s1);
     s2.push('2');
     println!("s2: len = {}, cap = {}", s2.len(), s2.capacity());
 
@@ -83,11 +81,11 @@ fn hash_map_type() {
     books.insert("Adventures of Huckleberry Finn".to_string(), 207);
     books.insert(String::from("Grimms' Fairy Tales"), 751);
     books.insert("Pride and Prejudice".to_string(), 303);
-    
+
     let _ = HashMap::from([
         ("Harry Potter and the Sorcerer's Stone".to_string(), 336),
         ("The Hunger Games".to_string(), 374),
-      ]);
+    ]);
 
     let pname = "Prostokvashino";
     if !books.contains_key(pname) {
@@ -101,7 +99,11 @@ fn hash_map_type() {
         }
     }
     println!("{books:#?}");
-    for book in ["Pride and Prejudice", pname, "Alice's Adventure in Wonderland"] {
+    for book in [
+        "Pride and Prejudice",
+        pname,
+        "Alice's Adventure in Wonderland",
+    ] {
         // if not found key, then insert it with default value
         let page_count: &mut i32 = books.entry(book.to_string()).or_insert(2);
         // change the value in the map
@@ -109,7 +111,9 @@ fn hash_map_type() {
     }
     println!("{books:#?}");
 
-    let _ = books.get("Harry Potter and the Sorcerer's Stone").unwrap_or(&336); // not change map, returns val if not found
+    let _ = books
+        .get("Harry Potter and the Sorcerer's Stone")
+        .unwrap_or(&336); // not change map, returns val if not found
 }
 
 fn main() -> Result<()> {

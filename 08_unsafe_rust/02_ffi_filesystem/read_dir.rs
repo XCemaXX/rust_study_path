@@ -36,7 +36,7 @@ mod ffi {
 use std::ffi::{CStr, CString, OsStr, OsString};
 use std::os::unix::ffi::OsStrExt;
 
-use crate::ffi::{opendir, closedir, readdir};
+use crate::ffi::{closedir, opendir, readdir};
 
 #[derive(Debug)]
 struct DirectoryIterator {
@@ -47,11 +47,11 @@ struct DirectoryIterator {
 impl DirectoryIterator {
     fn new(path: &str) -> Result<DirectoryIterator, String> {
         let path_c = CString::new(path).map_err(|err| format!("Invalid path: {err}"))?;
-        let dir = unsafe {opendir(path_c.as_ptr())};
+        let dir = unsafe { opendir(path_c.as_ptr()) };
         if dir.is_null() {
             Err("No such directory".to_string())
         } else {
-            Ok(DirectoryIterator{path: path_c, dir})
+            Ok(DirectoryIterator { path: path_c, dir })
         }
     }
 }
@@ -65,8 +65,7 @@ impl Iterator for DirectoryIterator {
             Some(OsString::from(os_str))
         } else {
             None
-        }       
-
+        }
     }
 }
 
@@ -99,9 +98,8 @@ mod tests {
     #[test]
     fn test_empty_directory() -> Result<(), Box<dyn Error>> {
         let tmp = tempfile::TempDir::new()?;
-        let iter = DirectoryIterator::new(
-            tmp.path().to_str().ok_or("Non UTF-8 character in path")?,
-        )?;
+        let iter =
+            DirectoryIterator::new(tmp.path().to_str().ok_or("Non UTF-8 character in path")?)?;
         let mut entries = iter.collect::<Vec<_>>();
         entries.sort();
         assert_eq!(entries, &[".", ".."]);
@@ -114,9 +112,8 @@ mod tests {
         std::fs::write(tmp.path().join("foo.txt"), "The Foo Diaries\n")?;
         std::fs::write(tmp.path().join("bar.png"), "<PNG>\n")?;
         std::fs::write(tmp.path().join("crab.rs"), "//! Crab\n")?;
-        let iter = DirectoryIterator::new(
-            tmp.path().to_str().ok_or("Non UTF-8 character in path")?,
-        )?;
+        let iter =
+            DirectoryIterator::new(tmp.path().to_str().ok_or("Non UTF-8 character in path")?)?;
         let mut entries = iter.collect::<Vec<_>>();
         entries.sort();
         assert_eq!(entries, &[".", "..", "bar.png", "crab.rs", "foo.txt"]);

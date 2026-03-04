@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use std::cell::Cell;
 use std::cell::RefCell;
+use std::collections::HashMap;
 
 fn main() {
     // RefCell without copy
@@ -8,7 +8,8 @@ fn main() {
     map.insert("a".to_owned(), "1".to_owned());
     map.insert("b".to_owned(), "2".to_owned());
     map.insert("c".to_owned(), "3".to_owned());
-    let mut map: HashMap<String, RefCell<String>> = map.into_iter()
+    let mut map: HashMap<String, RefCell<String>> = map
+        .into_iter()
         .map(|(key, value)| (key, RefCell::new(value)))
         .collect();
     map.insert("e".to_owned(), "4".to_string().into());
@@ -79,4 +80,3 @@ fn main() {
 
     println!("Result: {:#?}", map);
 }
-

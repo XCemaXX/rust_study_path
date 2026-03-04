@@ -1,4 +1,3 @@
-
 #[repr(C)]
 union MyUnion {
     i: u8,
@@ -8,12 +7,14 @@ union MyUnion {
 static mut COUNTER: u32 = 0;
 
 fn add_to_counter(inc: u32) {
-    unsafe { //cannot change safely because of multithreading
+    unsafe {
+        //cannot change safely because of multithreading
         COUNTER += inc;
     }
 }
 
-extern "C" { // foreign function interface, FFI
+extern "C" {
+    // foreign function interface, FFI
     fn abs(input: i32) -> i32;
 }
 
@@ -39,11 +40,12 @@ fn main() {
 
     add_to_counter(23);
 
-    unsafe { // in one thread actually safe
+    unsafe {
+        // in one thread actually safe
         println!("COUNTER: {COUNTER}");
     }
 
-    let u = MyUnion{ i: 42 };
+    let u = MyUnion { i: 42 };
     println!("int: {:?}", unsafe { u.i });
     println!("int: {:?}", unsafe { u.b }); // undefined behavior
 
@@ -54,7 +56,10 @@ fn main() {
         println!("emoji: {}", emojis.get_unchecked(7..11));
     }
     // unchecked functions usually unsafe
-    println!("Symbols count {}", count_chars(unsafe { emojis.get_unchecked(0..7) }));
+    println!(
+        "Symbols count {}",
+        count_chars(unsafe { emojis.get_unchecked(0..7) })
+    );
 
     unsafe {
         println!("Abs of -3 according to C is: {}", abs(-3));

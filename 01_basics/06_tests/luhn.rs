@@ -2,12 +2,16 @@ pub fn luhn(cc_number: &str) -> bool {
     let mut sum = 0;
     let mut need_to_double = false;
     let mut counter = 0_usize;
-    
+
     for c in cc_number.chars().filter(|c| *c != ' ').rev() {
         if let Some(digit) = c.to_digit(10) {
             if need_to_double {
                 let double_digit = digit * 2;
-                sum += if double_digit > 9 { 1 + (double_digit % 10)} else { double_digit };
+                sum += if double_digit > 9 {
+                    1 + (double_digit % 10)
+                } else {
+                    double_digit
+                };
             } else {
                 sum += digit;
             }

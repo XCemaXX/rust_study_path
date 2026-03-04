@@ -7,7 +7,9 @@ pub struct Label {
 impl Label {
     // Constructor
     pub fn new(label: &str) -> Self {
-        Label { label: label.to_owned() }
+        Label {
+            label: label.to_owned(),
+        }
     }
 
     pub fn get_text(&self) -> &str {

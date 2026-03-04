@@ -5,7 +5,7 @@ struct Clonnable(i32, i32, String);
 
 #[derive(Debug)]
 struct Droppable {
-    name: &'static str
+    name: &'static str,
 }
 
 impl Drop for Droppable {
@@ -17,9 +17,9 @@ impl Drop for Droppable {
 fn main() {
     let p1 = Clonnable(3, 4, String::from("asdf"));
     let p2 = p1.clone();
-    let _p3 = Droppable{name: "a"};
+    let _p3 = Droppable { name: "a" };
     {
-        let _p3 = Droppable{name: "b"};
+        let _p3 = Droppable { name: "b" };
     }
     drop(_p3);
     println!("p1: {p1:?}");

@@ -1,9 +1,9 @@
-use std::panic;
-use std::io::{self, Read};
-use std::fs;
+use anyhow::{bail, Context, Result};
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
-use anyhow::{bail, Context, Result};
+use std::fs;
+use std::io::{self, Read};
+use std::panic;
 
 fn read_username(path: &str) -> Result<String, io::Error> {
     let mut username_file = fs::File::open(path)?;
@@ -22,7 +22,7 @@ enum ReadUserNameError {
 impl Error for ReadUserNameError {}
 
 impl Display for ReadUserNameError {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result { 
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             Self::IoError(e) => write!(f, "IO error {e}"),
             Self::EmptyName(path) => write!(f, "Cannot get user name from {path}"),
@@ -69,7 +69,6 @@ fn read_username3(path: &str) -> Result<String> {
     }
     Ok(username)
 }
-
 
 fn main() {
     let result = panic::catch_unwind(|| "No problem here!");

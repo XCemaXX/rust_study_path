@@ -21,7 +21,8 @@ enum Expression {
 
 // recursive eval
 fn eval(e: Expression) -> Result<i64, String> {
-    Ok( match e { // <- OK wrapper for all returns
+    Ok(match e {
+        // <- OK wrapper for all returns
         Expression::Op { op, left, right } => {
             // with help of if let
             let left_res = eval(*left);
@@ -60,9 +61,9 @@ fn eval(e: Expression) -> Result<i64, String> {
                     } else {
                         left_val / right_val
                     }
-                },
+                }
             }
-        },
+        }
         Expression::Value(val) => val,
     })
 }

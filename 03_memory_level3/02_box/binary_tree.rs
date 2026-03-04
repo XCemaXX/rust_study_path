@@ -9,13 +9,16 @@ struct Node<T: Ord> {
 struct Subtree<T: Ord>(Option<Box<Node<T>>>); //can be empty
 
 #[derive(Debug)]
-pub struct BinaryTree<T: Ord> { //only unique values
+pub struct BinaryTree<T: Ord> {
+    //only unique values
     root: Subtree<T>,
 }
 
 impl<T: Ord> BinaryTree<T> {
     fn new() -> Self {
-        Self{root: Subtree::new()}
+        Self {
+            root: Subtree::new(),
+        }
     }
 
     fn insert(&mut self, value: T) {
@@ -46,9 +49,9 @@ impl<T: Ord> Subtree<T> {
             None => *root = Some(Box::new(Node::new(value))),
             Some(b) => match value.cmp(&b.value) {
                 std::cmp::Ordering::Less => b.left.insert(value),
-                std::cmp::Ordering::Equal => {},
+                std::cmp::Ordering::Equal => {}
                 std::cmp::Ordering::Greater => b.right.insert(value),
-            }
+            },
         }
     }
 
@@ -59,44 +62,45 @@ impl<T: Ord> Subtree<T> {
                 std::cmp::Ordering::Less => b.left.has(value),
                 std::cmp::Ordering::Equal => true,
                 std::cmp::Ordering::Greater => b.right.has(value),
-            }
+            },
         }
     }
 
     fn len(&self) -> usize {
         match &self.0 {
             None => 0,
-            Some(b) => 1 + b.left.len() + b.right.len(), 
+            Some(b) => 1 + b.left.len() + b.right.len(),
         }
     }
 
     fn iter(&self) -> BinaryTreeIter<T> {
         match &self.0 {
-            None => BinaryTreeIter {parents: vec![]},
-            Some(b) => {
-                BinaryTreeIter {parents: vec![b]}
-            }
+            None => BinaryTreeIter { parents: vec![] },
+            Some(b) => BinaryTreeIter { parents: vec![b] },
         }
-        
     }
 }
 
 impl<T: Ord> Node<T> {
     fn new(value: T) -> Self {
-        Self{value: value, left: Subtree::new(), right: Subtree::new()}
+        Self {
+            value: value,
+            left: Subtree::new(),
+            right: Subtree::new(),
+        }
     }
 }
 
 struct BinaryTreeIter<'a, T: Ord> {
-    parents: Vec<&'a Node<T>>
+    parents: Vec<&'a Node<T>>,
 }
 
-impl <'a, T: Ord>Iterator for BinaryTreeIter<'a, T> {
+impl<'a, T: Ord> Iterator for BinaryTreeIter<'a, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.parents.len() == 0 {
-            return None
+            return None;
         };
         let root = &self.parents.pop();
         match root {
@@ -110,11 +114,10 @@ impl <'a, T: Ord>Iterator for BinaryTreeIter<'a, T> {
                     self.parents.push(&next);
                 }
                 res
-            },
-        }   
+            }
+        }
     }
 }
-
 
 fn main() {
     let mut tree = BinaryTree::new();
@@ -129,7 +132,7 @@ fn main() {
     tree2.insert(1);
     tree2.insert(3);
     for i in tree2.iter() {
-        println!("{}",i)
+        println!("{}", i)
     }
 }
 
@@ -153,8 +156,7 @@ mod tests {
     fn has() {
         let mut tree = BinaryTree::new();
         fn check_has(tree: &BinaryTree<i32>, exp: &[bool]) {
-            let got: Vec<bool> =
-                (0..exp.len()).map(|i| tree.has(&(i as i32))).collect();
+            let got: Vec<bool> = (0..exp.len()).map(|i| tree.has(&(i as i32))).collect();
             assert_eq!(&got, exp);
         }
 

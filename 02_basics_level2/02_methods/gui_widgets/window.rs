@@ -11,7 +11,10 @@ fn draw_into_center(str: &str, buffer: &mut dyn std::fmt::Write, width: usize) {
 
 impl Window {
     pub fn new(title: &str) -> Window {
-        Window { title: title.to_owned(), widgets: Vec::new() }
+        Window {
+            title: title.to_owned(),
+            widgets: Vec::new(),
+        }
     }
 
     pub fn add_widget(&mut self, widget: Box<dyn Widget>) {

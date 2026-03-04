@@ -5,10 +5,10 @@ use std::sync::Arc;
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
 
-use crate::pdf::PdfWithOrigin;
 use crate::Coords;
 use crate::hit::{self, Aabb, Hit, HitRecord};
 use crate::material::{IntoSharedMaterial, Material};
+use crate::pdf::PdfWithOrigin;
 use crate::ray::Ray;
 
 thread_local! {

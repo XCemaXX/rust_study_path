@@ -8,7 +8,7 @@ fn arc_use() {
     let mut handles = Vec::new();
     for _ in 1..5 {
         let v_ref = Arc::clone(&v);
-        handles.push( thread::spawn(move || {
+        handles.push(thread::spawn(move || {
             let thread_id = thread::current().id();
             println!("{:?} {:?}", thread_id, v_ref);
         }));
@@ -23,7 +23,7 @@ fn arc_mut() {
     let mut handles = Vec::new();
     for i in 1..5 {
         let mut v_ref = Arc::clone(&v);
-        handles.push( thread::spawn(move || {
+        handles.push(thread::spawn(move || {
             let thread_id = i;
             let v = Arc::make_mut(&mut v_ref);
             v.push(i);
@@ -41,7 +41,7 @@ fn mutex_use() {
     let mut handles = Vec::new();
     for i in 1..5 {
         let v_ref = Arc::clone(&v);
-        handles.push( thread::spawn(move || {
+        handles.push(thread::spawn(move || {
             let mut v_in = v_ref.lock().unwrap();
             v_in.push(i);
             println!("{:?}", *v_in);
@@ -51,7 +51,8 @@ fn mutex_use() {
     println!("parent {:?}", v.lock().unwrap());
 }
 
-fn mut_vec(v: &RwLock<Vec<i32>>, val: i32) { // like RefCell threadsafe
+fn mut_vec(v: &RwLock<Vec<i32>>, val: i32) {
+    // like RefCell threadsafe
     {
         let guard = v.write();
         //let mut b2 = v.write(); // will panic in runtime not compile time

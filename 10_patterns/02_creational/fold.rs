@@ -5,11 +5,11 @@ trait Transormable<T> {
 }
 
 enum DocPrimitive {
-    Document { 
+    Document {
         name: String,
         content: Vec<DocPrimitive>,
     },
-    Table { 
+    Table {
         number: usize,
         rows: Vec<DocPrimitive>,
     },
@@ -67,9 +67,7 @@ impl Transormable<JSON> for DocPrimitive {
                     ("rows".to_string(), JSON::Array(transformed)),
                 ])
             }
-            DocPrimitive::Text(text) => {
-                JSON::String(text.clone())
-            }
+            DocPrimitive::Text(text) => JSON::String(text.clone()),
         }
     }
 }
@@ -84,10 +82,10 @@ fn main() {
                 rows: vec![
                     DocPrimitive::Text("Row1".to_string()),
                     DocPrimitive::Text("Row2".to_string()),
-                    DocPrimitive::Table { 
+                    DocPrimitive::Table {
                         number: 2,
-                        rows: Vec::new()
-                    }
+                        rows: Vec::new(),
+                    },
                 ],
             },
             DocPrimitive::Text("World".to_string()),

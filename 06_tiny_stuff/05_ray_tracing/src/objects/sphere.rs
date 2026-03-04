@@ -5,11 +5,11 @@ use std::sync::Arc;
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
 
-use crate::pdf::PdfWithOrigin;
 use crate::Coords;
 use crate::hit::{self, Aabb, Hit, HitRecord};
 use crate::material::{IntoSharedMaterial, Material};
 use crate::onb::Onb;
+use crate::pdf::PdfWithOrigin;
 use crate::ray::Ray;
 
 use std::f32::consts::PI;
@@ -24,7 +24,7 @@ pub struct Sphere {
     radius: f32,
     material: Arc<dyn Material>,
     bbox: Aabb,
-    is_moving: bool
+    is_moving: bool,
 }
 
 impl Sphere {
@@ -37,7 +37,7 @@ impl Sphere {
             radius,
             material,
             bbox: Aabb::from_points(static_center - rvec, static_center + rvec),
-            is_moving: false
+            is_moving: false,
         }
     }
 
@@ -58,7 +58,7 @@ impl Sphere {
             radius,
             material,
             bbox: Aabb::from_boxes(box1, box2),
-            is_moving: true
+            is_moving: true,
         }
     }
 

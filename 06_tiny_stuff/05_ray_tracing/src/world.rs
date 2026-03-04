@@ -1,7 +1,11 @@
 use std::ops::Range;
 
-use crate::{hit::{BvhNode, Hit, HitRecord, HitableList}, lights::Lights, pdf::PdfWithOrigin, ray::Ray};
-
+use crate::{
+    hit::{BvhNode, Hit, HitRecord, HitableList},
+    lights::Lights,
+    pdf::PdfWithOrigin,
+    ray::Ray,
+};
 
 pub struct World {
     objects: HitableList,
@@ -12,7 +16,7 @@ impl World {
     pub fn new() -> Self {
         Self {
             objects: HitableList::new(),
-            lights: Lights::new()
+            lights: Lights::new(),
         }
     }
 
@@ -39,9 +43,6 @@ impl World {
         let lights = self.lights;
         let mut objects = HitableList::new();
         objects.push(bvh);
-        Self {
-            objects,
-            lights
-        }
+        Self { objects, lights }
     }
 }

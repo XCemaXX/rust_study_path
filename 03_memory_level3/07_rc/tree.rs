@@ -8,12 +8,17 @@ struct Tree<T> {
 }
 
 impl<T> Tree<T>
-where T: std::default::Default,
+where
+    T: std::default::Default,
     T: std::iter::Sum,
     T: std::ops::Add<Output = T>,
-    T: Copy {
+    T: Copy,
+{
     fn new(value: T) -> Rc<RefCell<Self>> {
-        Rc::new(RefCell::new(Tree {value, ..Tree::default() }))
+        Rc::new(RefCell::new(Tree {
+            value,
+            ..Tree::default()
+        }))
     }
 
     fn sum(&self) -> T {

@@ -13,7 +13,11 @@ impl Ray {
     }
 
     pub fn new_timed(a: Coords, b: Coords, time: f32) -> Self {
-        Self { orig: a, dir: b, tm: time }
+        Self {
+            orig: a,
+            dir: b,
+            tm: time,
+        }
     }
 
     pub fn origin(&self) -> Coords {

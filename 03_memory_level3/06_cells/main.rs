@@ -1,7 +1,7 @@
 use std::cell::{Cell, OnceCell, Ref, RefCell};
 
 struct Holder {
-    data: Vec<i32>
+    data: Vec<i32>,
 }
 
 fn mut_cells(cells: &[Cell<i32>]) {
@@ -27,7 +27,6 @@ fn mut_vec(v: &RefCell<Vec<i32>>) {
     println!("1read: {read_borrow:?}");
     println!("2read: {read_borrow2:?}");
 }
-
 
 fn get_lazy_value(c: &OnceCell<String>) -> &String {
     c.get_or_init(|| {
@@ -55,16 +54,16 @@ fn main() {
     println!("Origin ref_cell: {:?}", ref_v.borrow());
     println!("Copy ref_cell_copy: {:?}", rfcopy.borrow());
 
-    let person = RefCell::new(
-        Holder{data: vec![1, 2, 3, 4, ]}
-    );
+    let person = RefCell::new(Holder {
+        data: vec![1, 2, 3, 4],
+    });
     let name = Ref::map(person.borrow(), |p| &p.data);
     println!("Ref on part: {name:?}");
 
     let cell = OnceCell::new();
     assert!(cell.get().is_none());
-    let _  = get_lazy_value(&cell);
-    let value  = get_lazy_value(&cell);
+    let _ = get_lazy_value(&cell);
+    let value = get_lazy_value(&cell);
     println!("{value}");
     assert!(cell.set("value".to_string()).is_err());
 }

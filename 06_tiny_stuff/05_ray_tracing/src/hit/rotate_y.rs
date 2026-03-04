@@ -2,7 +2,9 @@ use core::f32;
 use std::f32::consts::PI;
 
 use crate::{
-    coords::{Axis, Coords}, pdf::PdfWithOrigin, ray::Ray
+    coords::{Axis, Coords},
+    pdf::PdfWithOrigin,
+    ray::Ray,
 };
 
 use super::{Aabb, Hit, HitRecord};

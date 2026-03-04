@@ -17,10 +17,7 @@ impl<T> Stack<T> {
     }
 
     pub fn push(&mut self, elem: T) {
-        let node = Box::new(Node {
-            elem,
-            next: None,
-        });
+        let node = Box::new(Node { elem, next: None });
         self.push_node(node);
     }
 

@@ -34,8 +34,7 @@ impl User {
         let mbp = measurements.blood_pressure;
         let dif_height = measurements.height - self.height;
         let dif_blood_pressure = if let Some(bp) = self.last_blood_pressure {
-            Some((mbp.0 as i32 - bp.0 as i32,
-                mbp.1 as i32 - bp.1 as i32))
+            Some((mbp.0 as i32 - bp.0 as i32, mbp.1 as i32 - bp.1 as i32))
         } else {
             None
         };
@@ -43,8 +42,8 @@ impl User {
         self.last_blood_pressure = Some(mbp);
         self.visit_count += 1;
 
-        HealthReport{
-            patient_name: &self.name, 
+        HealthReport {
+            patient_name: &self.name,
             visit_count: self.visit_count as u32,
             height_change: dif_height,
             blood_pressure_change: dif_blood_pressure,

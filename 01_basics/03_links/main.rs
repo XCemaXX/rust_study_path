@@ -1,12 +1,12 @@
 fn magnitude(vec: &[f64]) -> f64 {
     let mut res = 0.0;
     for e in vec {
-        res += e*e
+        res += e * e
     }
     res.sqrt()
 }
 
-fn normalize(vec : &mut [f64]) {
+fn normalize(vec: &mut [f64]) {
     let m = magnitude(&vec);
     for e in vec.iter_mut() {
         *e = *e / m;

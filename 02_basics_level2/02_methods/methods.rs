@@ -1,4 +1,3 @@
-
 struct Rase {
     name: String,
     laps: Vec<i32>,
@@ -6,8 +5,12 @@ struct Rase {
 
 impl Rase {
     // static
-    fn new(name: &str) -> Self { // Self is synonym for Race
-        Self { name: String::from(name), laps: Vec::new() }
+    fn new(name: &str) -> Self {
+        // Self is synonym for Race
+        Self {
+            name: String::from(name),
+            laps: Vec::new(),
+        }
     }
 
     // exclusive borrowing. Possible to change Struct

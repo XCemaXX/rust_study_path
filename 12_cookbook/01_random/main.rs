@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use rand::{
     Rng,
-    distr::{Distribution, StandardUniform, Uniform, Alphanumeric},
+    distr::{Alphanumeric, Distribution, StandardUniform, Uniform},
 };
 use rand_distr::Normal;
 
@@ -38,13 +38,20 @@ fn main() {
     println!("Random tuple: {:?}", rng.random::<(i32, bool, f64)>());
     println!("Random point: {:?}", rng.random::<Point>());
 
-    let pass: String = rng.clone().sample_iter(&Alphanumeric).take(30).map(char::from).collect();
+    let pass: String = rng
+        .clone()
+        .sample_iter(&Alphanumeric)
+        .take(30)
+        .map(char::from)
+        .collect();
     println!("Generated pass: {}", pass);
 
     const CHARSET: &[u8] = b"QWErty123890";
-    let pass: String = (0..30).map(|_| {
-        let idx = rng.random_range(0..CHARSET.len());
-        CHARSET[idx] as char
-    }).collect();
+    let pass: String = (0..30)
+        .map(|_| {
+            let idx = rng.random_range(0..CHARSET.len());
+            CHARSET[idx] as char
+        })
+        .collect();
     println!("Generated from CHARSET pass: {}", pass);
 }

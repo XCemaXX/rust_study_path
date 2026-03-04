@@ -28,7 +28,7 @@ fn unbounded_async_channel() {
         println!("Child end {thread_id:?}");
     });
     thread::sleep(Duration::from_millis(100));
-    
+
     for msg in receiver.iter() {
         println!("Parent {msg}");
     }
@@ -52,7 +52,7 @@ fn bounded_sync_channel() {
     t.join().unwrap();
 }
 
-fn main () {
+fn main() {
     simple_send_recv();
     unbounded_async_channel();
     bounded_sync_channel();

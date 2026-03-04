@@ -8,9 +8,10 @@ impl CallBack {
     }
 }
 
- 
 fn main() {
-    let a = CallBack{ callback: Box::new(|| println!("member")) };
+    let a = CallBack {
+        callback: Box::new(|| println!("member")),
+    };
     (a.callback)(); // call member
     a.callback(); // call from trait
 }

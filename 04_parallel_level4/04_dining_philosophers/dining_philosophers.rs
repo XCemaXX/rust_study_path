@@ -12,8 +12,18 @@ struct Philosopher {
 }
 
 impl Philosopher {
-    fn new(name: &str, left_fork: Arc<Mutex<Fork>>, right_fork: Arc<Mutex<Fork>>, sender: mpsc::Sender<String>) -> Self {
-        Philosopher {name: name.to_string(), left_fork, right_fork, thoughts: sender}
+    fn new(
+        name: &str,
+        left_fork: Arc<Mutex<Fork>>,
+        right_fork: Arc<Mutex<Fork>>,
+        sender: mpsc::Sender<String>,
+    ) -> Self {
+        Philosopher {
+            name: name.to_string(),
+            left_fork,
+            right_fork,
+            thoughts: sender,
+        }
     }
 
     fn think(&self) {
@@ -35,8 +45,7 @@ impl Philosopher {
     }
 }
 
-const PHILOSOPHERS: &[&str] =
-    &["Socrates", "Hypatia", "Plato", "Aristotle", "Pythagoras"];
+const PHILOSOPHERS: &[&str] = &["Socrates", "Hypatia", "Plato", "Aristotle", "Pythagoras"];
 
 fn main() {
     let phil_count = PHILOSOPHERS.len();
@@ -47,7 +56,12 @@ fn main() {
     for i in 0..phil_count {
         let left_fork = Arc::clone(&forks[i]);
         let right_fork = Arc::clone(&forks[(i + 1) % phil_count]);
-        philosophers.push(Philosopher::new(PHILOSOPHERS[i], left_fork, right_fork, sender.clone()));
+        philosophers.push(Philosopher::new(
+            PHILOSOPHERS[i],
+            left_fork,
+            right_fork,
+            sender.clone(),
+        ));
     }
 
     let mut handles = Vec::new();

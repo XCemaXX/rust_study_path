@@ -58,7 +58,6 @@ impl Pdf for CosinePdf {
     }
 }
 
-
 pub struct HitablePdf<'a> {
     origin: Coords,
     objects: &'a dyn PdfWithOrigin,

@@ -20,10 +20,16 @@ fn main() {
     let foo = Foo::default();
     println!("{foo:#?}"); // :#? - pretty printing
 
-    let foo2 = Foo{y: "Y String".into(), ..Foo::default()};
+    let foo2 = Foo {
+        y: "Y String".into(),
+        ..Foo::default()
+    };
     println!("{foo2:?}");
 
-    let foo3 = Foo{z: Implemented("Like foo2, but foo3".into()), ..foo2};
+    let foo3 = Foo {
+        z: Implemented("Like foo2, but foo3".into()),
+        ..foo2
+    };
     println!("{foo3:?}");
 
     let none: Option<Foo> = None;

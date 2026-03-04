@@ -11,7 +11,7 @@ async fn async_main(limit: usize) {
     count_to(limit).await;
 }
 
-fn main () {
+fn main() {
     let f = async_main(10);
     block_on(f);
 }

@@ -1,4 +1,3 @@
-
 #[derive(Debug)]
 pub struct Todo {
     pub message: String,
@@ -8,13 +7,13 @@ pub struct Todo {
 pub struct Todos {
     pub list: Vec<Todo>,
 }
- 
+
 struct TodosIteratorByRef<'a> {
     todos: &'a Todos,
     index: usize,
 }
 
-impl <'a>Iterator for TodosIteratorByRef<'a> {
+impl<'a> Iterator for TodosIteratorByRef<'a> {
     type Item = &'a Todo;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -27,17 +26,19 @@ impl <'a>Iterator for TodosIteratorByRef<'a> {
             None
         }
     }
-
 }
 
 impl Todos {
     fn iter(&self) -> TodosIteratorByRef {
-        TodosIteratorByRef { todos: self, index: 0, }
+        TodosIteratorByRef {
+            todos: self,
+            index: 0,
+        }
     }
 }
 //####################
 pub struct TodosIntoIteratorByValue {
-    todos: Todos
+    todos: Todos,
 }
 
 impl IntoIterator for Todos {
@@ -61,16 +62,28 @@ impl Iterator for TodosIntoIteratorByValue {
 }
 
 fn main() {
-    let todo_list = Todos{list: 
-        vec![Todo{message: "first".to_string(), done: true},
-        Todo{message: "second".to_string(), done: true},
-        Todo{message: "third".to_string(), done: true}]};
+    let todo_list = Todos {
+        list: vec![
+            Todo {
+                message: "first".to_string(),
+                done: true,
+            },
+            Todo {
+                message: "second".to_string(),
+                done: true,
+            },
+            Todo {
+                message: "third".to_string(),
+                done: true,
+            },
+        ],
+    };
     for todo in todo_list.iter() {
-        println!("{:?}", todo);// todo is a &Todo
+        println!("{:?}", todo); // todo is a &Todo
     }
     // we can reuse todo_list, since it's not consumed
     for todo in todo_list {
-        println!("{:?}", todo);// todo is a &Todo
+        println!("{:?}", todo); // todo is a &Todo
     }
     // we cannot reuse todo_list, since the for loop consumes it
 }

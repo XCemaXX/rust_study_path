@@ -5,8 +5,8 @@ mod send_sync;
 
 use std::{marker::PhantomData, ptr::NonNull};
 
-pub use iters::{IntoIter, Iter, IterMut};
 pub use cursor::CursorMut;
+pub use iters::{IntoIter, Iter, IterMut};
 
 struct Node<T> {
     elem: T,

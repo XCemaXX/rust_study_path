@@ -22,13 +22,26 @@ impl LessThan for Citation {
 }
 
 fn min<T: LessThan>(a: T, b: T) -> T {
-    if a.less_than(&b) { a } else { b }
+    if a.less_than(&b) {
+        a
+    } else {
+        b
+    }
 }
 
 fn main() {
-    let cit1 = Citation { author: "Shapiro", year: 2011 };
-    let cit2 = Citation { author: "Baumann", year: 2010 };
-    let cit3 = Citation { author: "Baumann", year: 2019 };
+    let cit1 = Citation {
+        author: "Shapiro",
+        year: 2011,
+    };
+    let cit2 = Citation {
+        author: "Baumann",
+        year: 2010,
+    };
+    let cit3 = Citation {
+        author: "Baumann",
+        year: 2019,
+    };
     // Debug version of assert_eq!. Will be removed from Release build
     debug_assert_eq!(min(cit1, cit2), cit2);
     debug_assert_eq!(min(cit2, cit3), cit2);

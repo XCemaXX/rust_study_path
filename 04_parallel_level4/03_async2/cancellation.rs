@@ -10,7 +10,11 @@ struct LinesReader {
 
 impl LinesReader {
     fn new(stream: DuplexStream) -> Self {
-        Self { stream, bytes: Vec::new(), buf: [0] }
+        Self {
+            stream,
+            bytes: Vec::new(),
+            buf: [0],
+        }
     }
 
     async fn next(&mut self) -> io::Result<Option<String>> {
@@ -42,9 +46,7 @@ async fn slow_copy(source: String, mut dest: DuplexStream) -> std::io::Result<()
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     let (client, server) = tokio::io::duplex(5);
-    let handle = tokio::spawn(slow_copy(
-        "Hello\nworld\n".to_owned(), client
-    ));
+    let handle = tokio::spawn(slow_copy("Hello\nworld\n".to_owned(), client));
 
     let mut lines = LinesReader::new(server);
     let mut interval = tokio::time::interval(Duration::from_millis(60));

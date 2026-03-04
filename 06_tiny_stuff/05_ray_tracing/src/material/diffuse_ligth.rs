@@ -1,7 +1,11 @@
 use std::sync::Arc;
 
 use crate::{
-    coords::Coords, hit::HitRecord, ray::Ray, texture::{IntoSharedTexture, SolidColor, Texture}, Color
+    Color,
+    coords::Coords,
+    hit::HitRecord,
+    ray::Ray,
+    texture::{IntoSharedTexture, SolidColor, Texture},
 };
 
 use super::Material;
@@ -28,7 +32,7 @@ impl DiffuseLight {
 impl Material for DiffuseLight {
     fn emitted(&self, _r_in: &Ray, rec: &HitRecord, u: f32, v: f32, p: Coords) -> Color {
         if !rec.front_face {
-            Color::new(0.,0.,0.)
+            Color::new(0., 0., 0.)
         } else {
             self.texture.value(u, v, p)
         }

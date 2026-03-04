@@ -2,7 +2,8 @@ use std::{
     marker::PhantomData,
     ops::Deref,
     ptr::NonNull,
-    sync::atomic::{self, AtomicUsize, Ordering}, thread,
+    sync::atomic::{self, AtomicUsize, Ordering},
+    thread,
 };
 
 struct MyArc<T> {
@@ -67,7 +68,9 @@ impl<T> Drop for MyArc<T> {
             return;
         }
         atomic::fence(Ordering::Acquire);
-        unsafe { let _ = Box::from_raw(self.ptr.as_ptr()); }
+        unsafe {
+            let _ = Box::from_raw(self.ptr.as_ptr());
+        }
     }
 }
 
@@ -76,7 +79,7 @@ fn main() {
     let mut handles = Vec::new();
     for _ in 1..5 {
         let v_ref = MyArc::clone(&v);
-        handles.push( thread::spawn(move || {
+        handles.push(thread::spawn(move || {
             let thread_id = thread::current().id();
             println!("{:?} {:?}", thread_id, *v_ref);
         }));

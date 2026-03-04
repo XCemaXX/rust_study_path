@@ -1,7 +1,7 @@
 #[derive(Debug)]
 enum List<T> {
     Element(T, Box<List<T>>),
-    Nil
+    Nil,
 }
 
 impl<T> List<T> {
@@ -32,7 +32,7 @@ impl<T> List<T> {
         }
         match node {
             Self::Element(value, _) => Some(value),
-            Self::Nil => None
+            Self::Nil => None,
         }
     }
     fn len(&self) -> usize {
@@ -44,11 +44,12 @@ impl<T> List<T> {
         }
         n
     }
-
 }
 
-impl<T> std::fmt::Display for List<T> where
-    T: std::fmt::Display {
+impl<T> std::fmt::Display for List<T>
+where
+    T: std::fmt::Display,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "[")?;
         let mut node = self;

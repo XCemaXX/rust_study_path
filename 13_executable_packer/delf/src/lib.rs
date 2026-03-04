@@ -153,8 +153,9 @@ where
     pub fn read_relr_entries(&self) -> Result<Vec<u64>, ReadRelaError> {
         use ReadRelaError as E;
 
-        let Some(bytes) =
-            self.dynamic_table_slice(DynamicTag::Relr, DynamicTag::RelrSz, || E::RelrSegmentNotFound)?
+        let Some(bytes) = self.dynamic_table_slice(DynamicTag::Relr, DynamicTag::RelrSz, || {
+            E::RelrSegmentNotFound
+        })?
         else {
             return Ok(Vec::new());
         };
@@ -251,7 +252,8 @@ where
     ) -> Result<Vec<Rela>, ReadRelaError> {
         use ReadRelaError as E;
 
-        let Some(i) = self.dynamic_table_slice(addr_tag, size_tag, || E::RelaSegmentNotFound)? else {
+        let Some(i) = self.dynamic_table_slice(addr_tag, size_tag, || E::RelaSegmentNotFound)?
+        else {
             return Ok(Vec::new());
         };
         let n = i.len() / Rela::SIZE;

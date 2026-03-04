@@ -18,8 +18,8 @@ async fn worker(mut work_queue: mpsc::Receiver<Task>) {
                 work.respond_on.send(work.data * 1000).expect("fail send resp");
                 works_done += 1;
             },
-            _ = &mut timeout_future => { 
-                println!("Works done {works_done}"); 
+            _ = &mut timeout_future => {
+                println!("Works done {works_done}");
                 timeout_future = Box::pin(sleep(Duration::from_millis(50)));
             },
         }
@@ -28,7 +28,13 @@ async fn worker(mut work_queue: mpsc::Receiver<Task>) {
 
 async fn do_work(work_queue: &mpsc::Sender<Task>, data: u32) -> u32 {
     let (sender, receiver) = oneshot::channel();
-    work_queue.send(Task {data, respond_on: sender}).await.expect("fail to send work");
+    work_queue
+        .send(Task {
+            data,
+            respond_on: sender,
+        })
+        .await
+        .expect("fail to send work");
     receiver.await.expect("fail to wait response")
 }
 

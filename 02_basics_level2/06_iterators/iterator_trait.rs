@@ -1,6 +1,6 @@
 struct Fibonacci {
     cur: i64,
-    next: i64
+    next: i64,
 }
 
 impl Fibonacci {
@@ -34,7 +34,6 @@ where
     //a.zip(b).map(|(a, b)| *b - *a).take(values.len()).collect()
 }
 
-
 fn main() {
     let fib = Fibonacci::new();
     for (i, n) in fib.enumerate().take(5) {
@@ -44,7 +43,6 @@ fn main() {
     let res = offset_differences(1, vec![1, 3, 5, 7]);
     println!("{:?}", res);
 }
-
 
 #[cfg(test)]
 mod tests {

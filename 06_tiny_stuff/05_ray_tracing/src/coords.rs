@@ -26,9 +26,10 @@ impl Coords {
 
         let phi = 2. * PI * r1;
         Self::new(
-            f32::cos(phi) * f32::sqrt(r2), 
-            f32::sin(phi) * f32::sqrt(r2), 
-            f32::sqrt(1. - r2))
+            f32::cos(phi) * f32::sqrt(r2),
+            f32::sin(phi) * f32::sqrt(r2),
+            f32::sqrt(1. - r2),
+        )
     }
 
     pub fn unit_vector(self) -> Self {
@@ -47,8 +48,7 @@ impl Coords {
         }
     }
 
-    pub fn random_on_hemisphere(normal: Self, rng: &mut impl Rng) -> Self
-    {
+    pub fn random_on_hemisphere(normal: Self, rng: &mut impl Rng) -> Self {
         let on_unit_sphere = Self::random_unit_vector(rng);
         if on_unit_sphere.clone().dot(normal) > 0. {
             on_unit_sphere

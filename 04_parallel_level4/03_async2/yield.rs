@@ -21,7 +21,7 @@ async fn ping() {
 async fn main() {
     let ping = ping();
     let pong = pong();
-    let futures: Vec<Pin<Box<dyn Future<Output = ()>>>>  = vec![Box::pin(ping), Box::pin(pong)];
+    let futures: Vec<Pin<Box<dyn Future<Output = ()>>>> = vec![Box::pin(ping), Box::pin(pong)];
     join_all(futures).await;
     println!();
 }

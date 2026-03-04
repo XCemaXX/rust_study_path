@@ -6,7 +6,9 @@ pub struct Button {
 
 impl Button {
     pub fn new(label: &str) -> Button {
-        Button { label: Label::new(label) }
+        Button {
+            label: Label::new(label),
+        }
     }
 }
 

@@ -3,10 +3,10 @@ use reqwest::Url;
 use scraper::{Html, Selector};
 use thiserror::Error;
 
+use std::collections::HashSet;
+use std::sync::mpsc;
 use std::time::Duration;
 use threadpool::ThreadPool;
-use std::sync::mpsc;
-use std::collections::HashSet;
 
 #[derive(Error, Debug)]
 enum Error {
@@ -58,8 +58,11 @@ fn visit_page(client: &Client, command: &CrawlCommand) -> Result<Vec<Url>, Error
     Ok(link_urls)
 }
 
-
-fn append_urls(r: Result<Vec<Url>, String>, url_checked: &mut HashSet<Url>, urls_to_check: &mut Vec<Url>) {
+fn append_urls(
+    r: Result<Vec<Url>, String>,
+    url_checked: &mut HashSet<Url>,
+    urls_to_check: &mut Vec<Url>,
+) {
     match r {
         Ok(links) => {
             for link in links {
@@ -67,7 +70,7 @@ fn append_urls(r: Result<Vec<Url>, String>, url_checked: &mut HashSet<Url>, urls
                     urls_to_check.push(link);
                 }
             }
-        },
+        }
         Err(e) => println!("{}", e),
     };
 }
@@ -78,8 +81,8 @@ fn main() {
     let (sender, receiver) = mpsc::channel();
 
     let start_url = Url::parse("https://www.google.org").unwrap();
-    let mut urls_to_check = vec![start_url.clone();1];
-    let mut url_checked: HashSet<Url> = HashSet::from_iter(vec![start_url;1]);
+    let mut urls_to_check = vec![start_url.clone(); 1];
+    let mut url_checked: HashSet<Url> = HashSet::from_iter(vec![start_url; 1]);
 
     let mut request_count = 0;
     const REQ_LIMIT: usize = 50;
@@ -90,11 +93,14 @@ fn main() {
             let sender: mpsc::Sender<Result<Vec<Url>, String>> = sender.clone();
             pool.execute(move || {
                 let client = Client::new();
-                let crawl_command = CrawlCommand{ url: link, extract_links: true };
+                let crawl_command = CrawlCommand {
+                    url: link,
+                    extract_links: true,
+                };
                 match visit_page(&client, &crawl_command) {
                     Ok(links) => {
                         sender.send(Ok(links)).unwrap();
-                    },
+                    }
                     Err(e) => {
                         sender.send(Err(e.to_string())).unwrap();
                     }
@@ -114,9 +120,13 @@ fn main() {
     }
     pool.join();
     drop(sender);
-    receiver.iter().for_each(|r| append_urls(r, &mut url_checked, &mut urls_to_check));
+    receiver
+        .iter()
+        .for_each(|r| append_urls(r, &mut url_checked, &mut urls_to_check));
 
     println!("Result: ");
-    url_checked.iter().for_each(|link| {println!("{}", link.to_string());});
-    println!("Total urls: {:?}", url_checked.len());    
+    url_checked.iter().for_each(|link| {
+        println!("{}", link.to_string());
+    });
+    println!("Total urls: {:?}", url_checked.len());
 }
