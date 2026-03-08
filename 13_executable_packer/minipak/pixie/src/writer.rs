@@ -53,5 +53,9 @@ impl Writer {
 }
 
 fn ceil(i: u64, n: u64) -> u64 {
-    if i % n == 0 { i } else { (i + n) & !(n - 1) }
+    if i.is_multiple_of(n) {
+        i
+    } else {
+        (i + n) & !(n - 1)
+    }
 }

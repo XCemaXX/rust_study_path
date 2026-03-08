@@ -33,15 +33,13 @@ impl Lights {
 impl PdfWithOrigin for Lights {
     fn pdf_value(&self, origin: Coords, direction: Coords) -> f32 {
         let weight = 1.0 / self.objects.len() as f32;
-        let sum = self
-            .objects
+        self.objects
             .iter()
-            .fold(0., |acc, o| acc + weight * o.pdf_value(origin, direction));
-        sum
+            .fold(0., |acc, o| acc + weight * o.pdf_value(origin, direction))
     }
 
     fn random(&self, origin: Coords) -> Coords {
-        assert!(self.objects.len() > 0);
+        assert!(!self.objects.is_empty());
         LIGHTS_RNG.with(|rng| {
             let i = rng.borrow_mut().random_range(0..self.objects.len());
             self.objects[i].random(origin)

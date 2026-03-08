@@ -50,7 +50,7 @@ impl Coords {
 
     pub fn random_on_hemisphere(normal: Self, rng: &mut impl Rng) -> Self {
         let on_unit_sphere = Self::random_unit_vector(rng);
-        if on_unit_sphere.clone().dot(normal) > 0. {
+        if on_unit_sphere.dot(normal) > 0. {
             on_unit_sphere
         } else {
             -on_unit_sphere

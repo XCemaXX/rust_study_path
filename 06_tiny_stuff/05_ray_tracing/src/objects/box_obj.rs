@@ -34,7 +34,7 @@ impl BoxObj {
 }
 
 impl Hit for BoxObj {
-    fn hit(&self, r: &crate::ray::Ray, ray_t: std::ops::Range<f32>) -> Option<HitRecord> {
+    fn hit(&self, r: &crate::ray::Ray, ray_t: std::ops::Range<f32>) -> Option<HitRecord<'_>> {
         self.sides.hit(r, ray_t)
     }
 

@@ -37,7 +37,7 @@ impl<H: Hit> ConstantMedium<H> {
 }
 
 impl<T: Hit> Hit for ConstantMedium<T> {
-    fn hit(&self, r: &Ray, ray_t: Range<f32>) -> Option<HitRecord> {
+    fn hit(&self, r: &Ray, ray_t: Range<f32>) -> Option<HitRecord<'_>> {
         let mut rec1 = self.boundary.hit(r, interval_universe())?;
         let range = (rec1.t + 0.001)..f32::MAX;
         let mut rec2 = self.boundary.hit(r, range)?;

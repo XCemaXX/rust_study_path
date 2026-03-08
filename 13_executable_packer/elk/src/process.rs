@@ -186,14 +186,14 @@ impl Process<Loading> {
             initializers.push(init);
         }
 
-        if let Some(init_array) = file.dynamic_entry(delf::DynamicTag::InitArray) {
-            if let Some(init_array_sz) = file.dynamic_entry(delf::DynamicTag::InitArraySz) {
-                let init_array = base + init_array;
-                let n = init_array_sz.0 as usize / std::mem::size_of::<delf::Addr>();
+        if let Some(init_array) = file.dynamic_entry(delf::DynamicTag::InitArray)
+            && let Some(init_array_sz) = file.dynamic_entry(delf::DynamicTag::InitArraySz)
+        {
+            let init_array = base + init_array;
+            let n = init_array_sz.0 as usize / std::mem::size_of::<delf::Addr>();
 
-                let inits: &[delf::Addr] = unsafe { init_array.as_slice(n) };
-                initializers.extend(inits.iter().map(|&init| init + base));
-            }
+            let inits: &[delf::Addr] = unsafe { init_array.as_slice(n) };
+            initializers.extend(inits.iter().map(|&init| init + base));
         }
 
         let object = Object {
@@ -267,7 +267,7 @@ impl Process<Loading> {
                 .file
                 .segment_of_type(delf::SegmentType::TLS)
                 .map(|ph| ph.memsz.0)
-                .unwrap_or_default() as u64;
+                .unwrap_or_default();
 
             if needed == 0 {
                 continue;
@@ -283,19 +283,21 @@ impl Process<Loading> {
 
         let mut block = Vec::with_capacity(total_size);
         let tcb_addr = delf::Addr(block.as_ptr() as u64 + storage_space as u64);
-        for _ in 0..storage_space {
-            block.push(0_u8);
+        block.resize(storage_space, 0_u8);
+
+        #[allow(clippy::let_unit_value)]
+        {
+            // TODO. Maybe need to improve tls, dtv...
+            let _tcb = block.extend(&tcb_addr.0.to_le_bytes());
+            let _dtv = block.extend(&0_u64.to_le_bytes());
+            let _thread_pointer = block.extend(&tcb_addr.0.to_le_bytes());
+            let _multiple_threads = block.extend(&0_u32.to_le_bytes());
+            let _gscope_flag = block.extend(&0_u32.to_le_bytes());
+            let _sysinfo = block.extend(&0_u64.to_le_bytes());
+            let _stack_guard = block.extend(&0xDEADBEEF_u64.to_le_bytes());
+            let _pointer_guard = block.extend(&0xFEEDFACE_u64.to_le_bytes());
         }
 
-        // TODO. Maybe need to improve tls, dtv...
-        let _tcb = block.extend(&tcb_addr.0.to_le_bytes());
-        let _dtv = block.extend(&0_u64.to_le_bytes());
-        let _thread_pointer = block.extend(&tcb_addr.0.to_le_bytes());
-        let _multiple_threads = block.extend(&0_u32.to_le_bytes());
-        let _gscope_flag = block.extend(&0_u32.to_le_bytes());
-        let _sysinfo = block.extend(&0_u64.to_le_bytes());
-        let _stack_guard = block.extend(&0xDEADBEEF_u64.to_le_bytes());
-        let _pointer_guard = block.extend(&0xFEEDFACE_u64.to_le_bytes());
         while block.len() < block.capacity() {
             block.push(0_u8);
         }
@@ -548,10 +550,10 @@ impl Process<TlsAllocated> {
             }
         };
 
-        if let RelocGroup::Direct = group {
-            if reltype == RT::Relative || found.is_indirect() {
-                return Ok(Some(objrel));
-            }
+        if let RelocGroup::Direct = group
+            && (reltype == RT::Relative || found.is_indirect())
+        {
+            return Ok(Some(objrel));
         }
 
         match reltype {
@@ -629,7 +631,7 @@ impl Process<TlsAllocated> {
                 .map(|objrel| self.apply_relocation(objrel, group))
                 .collect::<Result<Vec<_>, _>>()?
                 .into_iter()
-                .filter_map(|x| x)
+                .flatten()
                 .collect();
         }
 
@@ -771,7 +773,7 @@ impl Process<Protected> {
 
         unsafe {
             set_fs(self.state.tls.tcb_addr.0);
-            #[allow(clippy::clippy::needless_range_loop)]
+            #[allow(clippy::needless_range_loop)]
             for i in 0..initializers.len() {
                 call_init(initializers[i].1, argc, argv.as_ptr(), envp.as_ptr());
             }
@@ -892,7 +894,7 @@ pub struct Object {
 impl Object {
     fn symzero(&self) -> ResolvedSym<'_> {
         ResolvedSym::Defined(ObjectSym {
-            obj: &self,
+            obj: self,
             sym: &self.syms[0],
         })
     }

@@ -107,7 +107,7 @@ impl<'a> Object<'a> {
             }
             entries.items.push(DynamicEntry {
                 tag,
-                full_slice: &self.slice,
+                full_slice: self.slice,
             });
             input = rest;
         }
@@ -417,7 +417,7 @@ pub struct Syms<'a> {
 
 impl Syms<'_> {
     pub fn nth(&self, n: usize) -> Result<(Sym, &str), PixieError> {
-        let sym: Sym = self.symtab.parse_nth(&self.syment, n)?;
+        let sym: Sym = self.symtab.parse_nth(self.syment, n)?;
         let name = unsafe { self.strtab.as_slice().as_ptr().add(sym.name as _).cstr() };
         Ok((sym, name))
     }

@@ -1,3 +1,4 @@
+use std::fmt;
 use std::marker::PhantomData;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Range, Sub};
 
@@ -154,9 +155,9 @@ impl<Tag> DivAssign<f32> for Vec3<Tag> {
     }
 }
 
-impl<Tag> ToString for Vec3<Tag> {
-    fn to_string(&self) -> String {
-        format!("{} {} {}", self.0 as i32, self.1 as i32, self.2 as i32)
+impl<Tag> fmt::Display for Vec3<Tag> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} {} {}", self.0 as i32, self.1 as i32, self.2 as i32)
     }
 }
 

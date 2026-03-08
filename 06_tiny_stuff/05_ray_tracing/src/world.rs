@@ -20,7 +20,7 @@ impl World {
         }
     }
 
-    pub fn hit(&self, r: &Ray, ray_t: Range<f32>) -> Option<HitRecord> {
+    pub fn hit(&self, r: &Ray, ray_t: Range<f32>) -> Option<HitRecord<'_>> {
         self.objects.hit(r, ray_t)
     }
 

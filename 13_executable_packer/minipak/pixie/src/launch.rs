@@ -3,6 +3,10 @@ use core::arch::asm;
 use crate::syscall;
 
 #[inline(never)]
+/// # Safety
+/// - `stack_top` must point to a valid, writable stack memory.
+/// - `entry_point` must be a valid code address to jump to.
+/// - This function does raw assembly and never returns.
 pub unsafe fn launch(stack_top: *mut u8, entry_point: u64) -> ! {
     unsafe {
         syscall::dup(0);

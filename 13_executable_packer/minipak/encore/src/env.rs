@@ -53,6 +53,10 @@ pub struct Env {
 }
 
 impl Env {
+    /// # Safety
+    /// - `stack_top` must be valid, properly aligned, and point to initialized memory.
+    /// - The memory must contain null-terminated arguments, environment variables, and
+    ///   auxiliary vectors ending with `AuxType::NULL`.
     pub unsafe fn read(stack_top: *mut u8) -> Self {
         let mut ptr = stack_top as *mut u64;
         let mut env = Self::default();

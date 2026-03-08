@@ -19,7 +19,7 @@ fn refract(uv: Coords, n: Coords, etai_over_etat: f32) -> Coords {
     let cos_theta = f32::min((-uv).dot(n), 1.);
     let r_out_perp = etai_over_etat * (uv + cos_theta * n);
     let r_out_parallel = -f32::sqrt(f32::abs(1. - r_out_perp.length_squared())) * n;
-    return r_out_perp + r_out_parallel;
+    r_out_perp + r_out_parallel
 }
 
 fn reflectance(cosine: f32, refraction_index: f32) -> f32 {

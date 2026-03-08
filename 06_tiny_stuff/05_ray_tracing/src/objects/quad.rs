@@ -54,7 +54,7 @@ impl Quad {
 }
 
 impl hit::Hit for Quad {
-    fn hit(&self, r: &Ray, ray_t: Range<f32>) -> Option<HitRecord> {
+    fn hit(&self, r: &Ray, ray_t: Range<f32>) -> Option<HitRecord<'_>> {
         let denom = self.normal.dot(r.direction());
 
         if f32::abs(denom) < 1e-8 {

@@ -49,7 +49,7 @@ impl<T: Hit> RotateY<T> {
 }
 
 impl<T: Hit> Hit for RotateY<T> {
-    fn hit(&self, r: &crate::ray::Ray, ray_t: std::ops::Range<f32>) -> Option<HitRecord> {
+    fn hit(&self, r: &crate::ray::Ray, ray_t: std::ops::Range<f32>) -> Option<HitRecord<'_>> {
         // Transform the ray from world space to object space.
         let origin = Coords::new(
             (self.cos_theta * r.origin().x()) - (self.sin_theta * r.origin().z()),

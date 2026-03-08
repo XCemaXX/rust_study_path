@@ -80,7 +80,7 @@ impl Sphere {
 }
 
 impl hit::Hit for Sphere {
-    fn hit(&self, r: &crate::ray::Ray, ray_t: Range<f32>) -> Option<hit::HitRecord> {
+    fn hit(&self, r: &crate::ray::Ray, ray_t: Range<f32>) -> Option<hit::HitRecord<'_>> {
         let current_center = self.center.at(r.time());
         let oc = r.origin() - current_center;
         let a = r.direction().dot(r.direction());
@@ -144,5 +144,5 @@ fn random_to_sphere(radius: f32, distance_squared: f32) -> Coords {
     let x = f32::cos(phi) * f32::sqrt(1. - z * z);
     let y = f32::sin(phi) * f32::sqrt(1. - z * z);
 
-    return Coords::new(x, y, z);
+    Coords::new(x, y, z)
 }

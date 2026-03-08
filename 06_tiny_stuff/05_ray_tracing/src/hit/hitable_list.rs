@@ -29,7 +29,7 @@ impl HitableList {
 }
 
 impl Hit for HitableList {
-    fn hit(&self, r: &Ray, ray_t: Range<f32>) -> Option<HitRecord> {
+    fn hit(&self, r: &Ray, ray_t: Range<f32>) -> Option<HitRecord<'_>> {
         let mut hit_anything = None;
         let mut closest_so_far = ray_t.end;
         for obj in &self.objects {

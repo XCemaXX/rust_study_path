@@ -27,7 +27,7 @@ use texture::{CheckerTexture, ImageTexture, NoiseTexture, Texture};
 use vec3::Vec3;
 use world::World;
 
-const EARTH_TEXTURE_RAW: &'static [u8] = include_bytes!("../assets/earthmap.png");
+const EARTH_TEXTURE_RAW: &[u8] = include_bytes!("../assets/earthmap.png");
 
 fn camera_one() -> Camera {
     Camera::builder()
@@ -572,7 +572,7 @@ pub fn render_world() -> Image {
     let pixels = camera.render(&world);
 
     Image {
-        pixels: pixels,
+        pixels,
         width: camera.image.width as u32,
         height: camera.image.height as u32,
     }

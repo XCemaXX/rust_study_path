@@ -22,7 +22,8 @@ where
 
 fn dec_number(i: &str) -> IResult<&str, u64> {
     let (i, s) = take_while1(|c: char| c.is_ascii_digit()).parse(i)?;
-    let num = u64::from_str_radix(s, 10)
+    let num = s
+        .parse::<u64>()
         .map_err(|_| nom::Err::Error(nom::error::Error::new(i, nom::error::ErrorKind::Digit)))?;
     Ok((i, num))
 }

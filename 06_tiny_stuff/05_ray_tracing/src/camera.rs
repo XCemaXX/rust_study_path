@@ -184,7 +184,7 @@ impl Camera {
 
     fn defocus_disk_sample(&self, rng: &mut impl Rng) -> Coords {
         let p = random_in_unit_disk(rng);
-        return self.center + (p.x() * self.defocus_disk_u) + (p.y() * self.defocus_disk_v);
+        self.center + (p.x() * self.defocus_disk_u) + (p.y() * self.defocus_disk_v)
     }
 
     fn sample_square_stratified(&self, i: usize, j: usize, rng: &mut impl Rng) -> Coords {
@@ -329,6 +329,7 @@ impl Camera {
         color_from_emission + color_from_scatter
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn new(
         pixel_delta_u: Coords,
         pixel_delta_v: Coords,

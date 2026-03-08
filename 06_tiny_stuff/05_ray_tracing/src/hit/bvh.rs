@@ -50,10 +50,10 @@ impl BvhNode {
                 (left, right)
             }
         };
-        return Self {
+        Self {
             bbox,
             children: Children::Pair { left, right },
-        };
+        }
     }
 
     pub fn from_list(list: HitableList) -> Self {
@@ -67,7 +67,7 @@ impl Hit for BvhNode {
         &self,
         r: &crate::ray::Ray,
         ray_t: std::ops::Range<f32>,
-    ) -> Option<crate::hit::HitRecord> {
+    ) -> Option<crate::hit::HitRecord<'_>> {
         self.bbox.hit(r, ray_t.clone())?;
 
         match &self.children {

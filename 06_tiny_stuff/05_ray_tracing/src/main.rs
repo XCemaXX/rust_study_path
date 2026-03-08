@@ -29,9 +29,9 @@ pub fn save_as_png(
     filename: &str,
 ) -> std::io::Result<()> {
     let file = File::create(filename)?;
-    let ref mut w = BufWriter::new(file);
+    let w = &mut BufWriter::new(file);
 
-    let mut encoder = Encoder::new(w, width as u32, height as u32);
+    let mut encoder = Encoder::new(w, width, height);
     encoder.set_color(ColorType::Rgb);
     encoder.set_depth(BitDepth::Eight);
     let mut writer = encoder.write_header()?;

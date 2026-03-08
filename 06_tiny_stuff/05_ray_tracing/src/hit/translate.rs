@@ -20,7 +20,7 @@ impl<T: Hit> Translate<T> {
 }
 
 impl<T: Hit> Hit for Translate<T> {
-    fn hit(&self, r: &crate::ray::Ray, ray_t: std::ops::Range<f32>) -> Option<HitRecord> {
+    fn hit(&self, r: &crate::ray::Ray, ray_t: std::ops::Range<f32>) -> Option<HitRecord<'_>> {
         // Move the ray backwards by the offset
         let offset_r = Ray::new_timed(r.origin() - self.offset, r.direction(), r.time());
         // Determine whether an intersection exists along the offset ray (and if so, where)

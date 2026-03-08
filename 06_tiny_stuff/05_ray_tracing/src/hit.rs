@@ -53,7 +53,7 @@ impl HitRecord<'_> {
 }
 
 pub trait Hit: Sync {
-    fn hit(&self, r: &Ray, ray_t: Range<f32>) -> Option<HitRecord>;
+    fn hit(&self, r: &Ray, ray_t: Range<f32>) -> Option<HitRecord<'_>>;
 
     fn bounding_box(&self) -> &Aabb;
 }

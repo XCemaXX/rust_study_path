@@ -34,13 +34,13 @@ fn main(env: Env) -> Result<(), Error> {
     let args = cli::Args::parse(&env);
 
     println!("Packing quest {:?} into {:?}", args.input, args.output);
-    let guest = File::open(&args.input)?;
+    let guest = File::open(args.input)?;
     let guest_map = guest.map()?;
     let guest = guest_map.as_ref();
     let guest = Object::new(guest)?;
 
     let guest_hull = guest.segments().load_convex_hull()?;
-    let mut output = Writer::new(&args.output, 0o755)?;
+    let mut output = Writer::new(args.output, 0o755)?;
     relink_stage1(guest_hull, &mut output)?;
 
     let stage2_slice = include_bytes!(concat!(
