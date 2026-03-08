@@ -140,8 +140,8 @@ impl<T> MyVec<T> {
         }
     }
 
-    pub fn drain(&mut self) -> Drain<T> {
-        let iter = unsafe { RawValIter::new(&self) };
+    pub fn drain(&mut self) -> Drain<'_, T> {
+        let iter = unsafe { RawValIter::new(self) };
         self.len = 0;
         Drain {
             iter,
@@ -150,10 +150,16 @@ impl<T> MyVec<T> {
     }
 }
 
+impl<T> Default for MyVec<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T> Drop for MyVec<T> {
     fn drop(&mut self) {
         if mem::needs_drop::<T>() {
-            while let Some(_) = self.pop() {}
+            while self.pop().is_some() {}
         }
     }
 }
@@ -255,7 +261,7 @@ impl<T> RawValIter<T> {
     unsafe fn new(slice: &[T]) -> Self {
         let end = if mem::size_of::<T>() == 0 {
             ((slice.as_ptr() as usize) + slice.len()) as *const _
-        } else if slice.len() == 0 {
+        } else if slice.is_empty() {
             slice.as_ptr()
         } else {
             slice.as_ptr().add(slice.len())

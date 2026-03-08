@@ -10,3 +10,14 @@ path = "my_vector.rs"
 [[bin]]
 name = "my_arc"
 path = "my_arc.rs"
+
+[[bin]]
+name = "arc_improved"
+path = "arc_improved.rs"
+
+[[bin]]
+name = "locks"
+path = "locks.rs"
+
+[dependencies]
+atomic-wait = "1"
